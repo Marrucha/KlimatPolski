@@ -14,93 +14,151 @@
             <p class="subtitle">Archiwalne dane meteorologiczne z ostatnich 50 lat</p>
         </header>
 
-        <!-- Panel kontrolny -->
-        <section class="controls">
-            <div class="control-group">
-                <label for="date-picker">Wybierz datę:</label>
-                <input type="date" id="date-picker" />
-            </div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-weather">Pogoda bieżąca</button>
+            <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
+            <button class="tab-btn" data-tab="tab-daily-stats">Statystyki dzienne</button>
+        </div>
 
-            <div class="control-group">
-                <label for="location-select">Wybierz lokalizację:</label>
-                <select id="location-select">
-                    <option value="">-- Załaduj dostępne lokalizacje --</option>
-                </select>
-            </div>
+        <!-- TAB 1: Pogoda bieżąca (oryginalna) -->
+        <div id="tab-weather" class="tab-content active">
+            <!-- Panel kontrolny -->
+            <section class="controls">
+                <div class="control-group">
+                    <label for="date-picker">Wybierz datę:</label>
+                    <input type="date" id="date-picker" />
+                </div>
 
-            <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
-        </section>
+                <div class="control-group">
+                    <label for="location-select">Wybierz lokalizację:</label>
+                    <select id="location-select">
+                        <option value="">-- Załaduj dostępne lokalizacje --</option>
+                    </select>
+                </div>
 
-        <!-- Mapa -->
-        <section class="map-section">
-            <h2>Mapa</h2>
-            <div id="map" class="map-container">
-                <p class="placeholder">Mapa będzie wyświetlona tutaj (Leaflet)</p>
-            </div>
-        </section>
+                <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
+            </section>
 
-        <!-- Wykresy i statystyki -->
-        <section class="stats-section">
-            <div class="stat-card">
-                <h3>Temperatura</h3>
-                <div id="temp-chart" class="chart-container"></div>
-                <div class="stat-values">
-                    <div class="stat-item">
-                        <span class="label">Min:</span>
-                        <span id="temp-min" class="value">--</span>°C
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Max:</span>
-                        <span id="temp-max" class="value">--</span>°C
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Średnia:</span>
-                        <span id="temp-avg" class="value">--</span>°C
+            <!-- Mapa -->
+            <section class="map-section">
+                <h2>Mapa</h2>
+                <div id="map" class="map-container">
+                    <p class="placeholder">Mapa będzie wyświetlona tutaj (Leaflet)</p>
+                </div>
+            </section>
+
+            <!-- Wykresy i statystyki -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <h3>Temperatura</h3>
+                    <div id="temp-chart" class="chart-container"></div>
+                    <div class="stat-values">
+                        <div class="stat-item">
+                            <span class="label">Min:</span>
+                            <span id="temp-min" class="value">--</span>°C
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Max:</span>
+                            <span id="temp-max" class="value">--</span>°C
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Średnia:</span>
+                            <span id="temp-avg" class="value">--</span>°C
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="stat-card">
-                <h3>Opady</h3>
-                <div id="precip-chart" class="chart-container"></div>
-                <div class="stat-values">
-                    <div class="stat-item">
-                        <span class="label">Suma (24h):</span>
-                        <span id="precip-sum" class="value">--</span>mm
+                <div class="stat-card">
+                    <h3>Opady</h3>
+                    <div id="precip-chart" class="chart-container"></div>
+                    <div class="stat-values">
+                        <div class="stat-item">
+                            <span class="label">Suma (24h):</span>
+                            <span id="precip-sum" class="value">--</span>mm
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="stat-card">
-                <h3>Wiatr</h3>
-                <div id="wind-chart" class="chart-container"></div>
-                <div class="stat-values">
-                    <div class="stat-item">
-                        <span class="label">Prędkość (średnia):</span>
-                        <span id="wind-avg" class="value">--</span>m/s
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Maksimum:</span>
-                        <span id="wind-max" class="value">--</span>m/s
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Kierunek dominujący:</span>
-                        <span id="wind-dir" class="value">--</span>°
+                <div class="stat-card">
+                    <h3>Wiatr</h3>
+                    <div id="wind-chart" class="chart-container"></div>
+                    <div class="stat-values">
+                        <div class="stat-item">
+                            <span class="label">Prędkość (średnia):</span>
+                            <span id="wind-avg" class="value">--</span>m/s
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Maksimum:</span>
+                            <span id="wind-max" class="value">--</span>m/s
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Kierunek dominujący:</span>
+                            <span id="wind-dir" class="value">--</span>°
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="stat-card">
-                <h3>Zachmurzenie</h3>
-                <div id="cloud-chart" class="chart-container"></div>
-                <div class="stat-values">
-                    <div class="stat-item">
-                        <span class="label">Średnie:</span>
-                        <span id="cloud-avg" class="value">--</span>%
+                <div class="stat-card">
+                    <h3>Zachmurzenie</h3>
+                    <div id="cloud-chart" class="chart-container"></div>
+                    <div class="stat-values">
+                        <div class="stat-item">
+                            <span class="label">Średnie:</span>
+                            <span id="cloud-avg" class="value">--</span>%
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
+
+        <!-- TAB 2: Dane surowe (weather_data) -->
+        <div id="tab-raw-data" class="tab-content">
+            <section class="controls">
+                <div class="control-group">
+                    <label for="raw-month-picker">Wybierz miesiąc:</label>
+                    <input type="month" id="raw-month-picker" />
+                </div>
+
+                <div class="control-group">
+                    <label for="raw-hour-select">Wybierz godzinę:</label>
+                    <select id="raw-hour-select">
+                        <option value="0">00:00</option>
+                        <option value="6">06:00</option>
+                        <option value="12">12:00</option>
+                        <option value="18">18:00</option>
+                    </select>
+                </div>
+
+                <button id="load-raw-data-btn" class="btn-primary">Załaduj dane</button>
+            </section>
+
+            <section class="data-table-section">
+                <h2>Dane surowe (co 6h)</h2>
+                <div id="raw-data-table" class="table-container">
+                    <p class="placeholder">Dane będą wyświetlone tutaj</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB 3: Statystyki dzienne (daily_stats) -->
+        <div id="tab-daily-stats" class="tab-content">
+            <section class="controls">
+                <div class="control-group">
+                    <label for="daily-month-picker">Wybierz miesiąc:</label>
+                    <input type="month" id="daily-month-picker" />
+                </div>
+
+                <button id="load-daily-stats-btn" class="btn-primary">Załaduj statystyki</button>
+            </section>
+
+            <section class="data-table-section">
+                <h2>Statystyki dzienne</h2>
+                <div id="daily-stats-table" class="table-container">
+                    <p class="placeholder">Statystyki będą wyświetlone tutaj</p>
+                </div>
+            </section>
+        </div>
 
         <!-- Status ładowania -->
         <div id="loading" class="loading hidden">
