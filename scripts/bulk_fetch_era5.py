@@ -41,7 +41,7 @@ def setup_cds_credentials():
     cds_dir = Path.home() / '.cdsapi'
     if not cds_dir.exists():
         with open(cds_dir, 'w') as f:
-            f.write(f"url: {CDS_URL}\nkey: {CDS_UID}:{CDS_API_KEY}\n")
+            f.write(f"url: {CDS_URL}\nkey: {CDS_API_KEY}\n")
         logger.info("✓ Zapisano CDS credentials")
 
 
@@ -58,7 +58,7 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
     """
     logger.info(f"Pobieranie ERA5 {variable} dla {year}...")
 
-    client = cdsapi.Client(url=CDS_URL, key=f"{CDS_UID}:{CDS_API_KEY}")
+    client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
 
     output_file = f"era5_{variable}_{year}.nc"
 
