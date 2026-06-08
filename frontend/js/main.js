@@ -247,50 +247,59 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+// === INICJALIZACJA LOKALIZACJI ===
+async function initializeLocationSelects() {
+    const locations = await getAvailableLocations();
+    const uniqueLocations = [];
+    const seenKeys = new Set();
+
+    locations.forEach(loc => {
+        const key = `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
+        if (!seenKeys.has(key)) {
+            uniqueLocations.push(loc);
+            seenKeys.add(key);
+        }
+    });
+
+    [document.getElementById('raw-location-select'), document.getElementById('daily-location-select')].forEach(select => {
+        if (select) {
+            select.innerHTML = '<option value="">-- Wybierz --</option>';
+            uniqueLocations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({lat: loc.latitude, lon: loc.longitude});
+                opt.textContent = loc.location_name;
+                select.appendChild(opt);
+            });
+        }
+    });
+}
+
 // === TAB 2: DANE SUROWE ===
 document.getElementById('load-raw-data-btn')?.addEventListener('click', loadRawData);
 
 async function loadRawData() {
     try {
-        const month = document.getElementById('raw-month-picker').value;
-        const hour = document.getElementById('raw-hour-select').value;
+        const locJson = document.getElementById('raw-location-select').value;
+        const dateFrom = document.getElementById('raw-date-from').value;
+        const dateTo = document.getElementById('raw-date-to').value;
 
-        if (!month) {
-            showError('Wybierz miesiąc');
+        if (!locJson || !dateFrom || !dateTo) {
+            showError('Wybierz wszystkie pola');
             return;
         }
 
         showLoading(true);
         showError('');
 
-        const [year, monthNum] = month.split('-');
-        const startDate = `${year}-${monthNum}-01`;
-
-        // Ostatni dzień miesiąca (input type="month" zwraca miesiące 1-indexed)
-        const dateObj = new Date(year, parseInt(monthNum), 0);
-        const lastDay = dateObj.getDate();
-        const endDate = `${year}-${monthNum}-${String(lastDay).padStart(2, '0')}`;
-
-        const query = `forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&limit=5000`;
+        const loc = JSON.parse(locJson);
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?${query}`,
-            {
-                headers: {
-                    'apikey': API_CONFIG.SUPABASE_KEY,
-                    'Content-Type': 'application/json'
-                }
-            }
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?latitude=eq.${loc.lat.toFixed(2)}&longitude=eq.${loc.lon.toFixed(2)}&forecast_time=gte.${dateFrom}T00:00:00Z&forecast_time=lte.${dateTo}T23:59:59Z&limit=10000`,
+            {headers: {'apikey': API_CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json'}}
         );
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const records = await response.json();
-        const filtered = records.filter(r => {
-            const time = new Date(r.forecast_time);
-            return time.getHours() == hour;
-        });
-
-        displayRawDataTable(filtered);
+        displayRawDataTable(records);
     } catch (error) {
         showError(`Błąd: ${error.message}`);
     } finally {
@@ -300,19 +309,16 @@ async function loadRawData() {
 
 function displayRawDataTable(records) {
     const container = document.getElementById('raw-data-table');
-
     if (!records || records.length === 0) {
         container.innerHTML = '<p class="placeholder">Brak danych</p>';
         return;
     }
 
-    let html = `<table><thead><tr><th>Data</th><th>Godzina</th><th>Lokalizacja</th><th>Temp (°C)</th><th>Wiatr (m/s)</th><th>Kierunek (°)</th><th>Opady (mm)</th><th>Chmury (%)</th></tr></thead><tbody>`;
-
+    let html = `<table><thead><tr><th>Data</th><th>Godzina</th><th>Temp (°C)</th><th>Wiatr (m/s)</th><th>Kierunek (°)</th><th>Opady (mm)</th><th>Chmury (%)</th></tr></thead><tbody>`;
     records.forEach(r => {
         const date = new Date(r.forecast_time);
-        html += `<tr><td>${date.toLocaleDateString('pl-PL')}</td><td>${String(date.getHours()).padStart(2, '0')}:00</td><td>${r.location_name}</td><td>${(r.temperature_2m || 0).toFixed(1)}</td><td>${(r.wind_speed_10m || 0).toFixed(1)}</td><td>${(r.wind_direction_10m || 0).toFixed(0)}</td><td>${(r.precipitation_6h || 0).toFixed(1)}</td><td>${(r.cloud_cover_total || 0).toFixed(0)}</td></tr>`;
+        html += `<tr><td>${date.toLocaleDateString('pl-PL')}</td><td>${String(date.getHours()).padStart(2, '0')}:00</td><td>${(r.temperature_2m || 0).toFixed(1)}</td><td>${(r.wind_speed_10m || 0).toFixed(1)}</td><td>${(r.wind_direction_10m || 0).toFixed(0)}</td><td>${(r.precipitation_6h || 0).toFixed(1)}</td><td>${(r.cloud_cover_total || 0).toFixed(0)}</td></tr>`;
     });
-
     html += '</tbody></table>';
     container.innerHTML = html;
 }
@@ -322,10 +328,12 @@ document.getElementById('load-daily-stats-btn')?.addEventListener('click', loadD
 
 async function loadDailyStats() {
     try {
+        const locJson = document.getElementById('daily-location-select').value;
+        const measure = document.getElementById('daily-measure-select').value;
         const month = document.getElementById('daily-month-picker').value;
 
-        if (!month) {
-            showError('Wybierz miesiąc');
+        if (!locJson || !month) {
+            showError('Wybierz lokalizację i miesiąc');
             return;
         }
 
@@ -334,25 +342,19 @@ async function loadDailyStats() {
 
         const [year, monthNum] = month.split('-');
         const startDate = `${year}-${monthNum}-01`;
-
         const dateObj = new Date(year, parseInt(monthNum), 0);
         const lastDay = dateObj.getDate();
         const endDate = `${year}-${monthNum}-${String(lastDay).padStart(2, '0')}`;
 
+        const loc = JSON.parse(locJson);
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?date=gte.${startDate}&date=lte.${endDate}&limit=5000`,
-            {
-                headers: {
-                    'apikey': API_CONFIG.SUPABASE_KEY,
-                    'Content-Type': 'application/json'
-                }
-            }
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?latitude=eq.${loc.lat.toFixed(2)}&longitude=eq.${loc.lon.toFixed(2)}&date=gte.${startDate}&date=lte.${endDate}&limit=10000`,
+            {headers: {'apikey': API_CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json'}}
         );
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const stats = await response.json();
-        displayDailyStatsTable(stats);
+        drawDailyStatsChart(stats, measure);
     } catch (error) {
         showError(`Błąd: ${error.message}`);
     } finally {
@@ -360,20 +362,28 @@ async function loadDailyStats() {
     }
 }
 
-function displayDailyStatsTable(stats) {
-    const container = document.getElementById('daily-stats-table');
-
+function drawDailyStatsChart(stats, measure) {
     if (!stats || stats.length === 0) {
-        container.innerHTML = '<p class="placeholder">Brak danych</p>';
+        document.getElementById('daily-stats-chart').innerHTML = '<p class="placeholder">Brak danych</p>';
         return;
     }
 
-    let html = `<table><thead><tr><th>Data</th><th>Lokalizacja</th><th>Temp Min</th><th>Temp Max</th><th>Temp Śr</th><th>Wiatr Śr</th><th>Wiatr Max</th><th>Opady</th><th>Chmury</th></tr></thead><tbody>`;
+    const values = stats.map(s => s[measure] || 0);
+    const maxVal = Math.max(...values, 1);
+    let svg = `<svg viewBox="0 0 ${Math.max(400, values.length * 20)} 250" style="width: 100%; height: 300px;">`;
 
-    stats.forEach(s => {
-        html += `<tr><td>${s.date}</td><td>${s.location_name}</td><td>${(s.temp_min || 0).toFixed(1)}°C</td><td>${(s.temp_max || 0).toFixed(1)}°C</td><td>${(s.temp_avg || 0).toFixed(1)}°C</td><td>${(s.wind_speed_avg || 0).toFixed(1)}m/s</td><td>${(s.wind_speed_max || 0).toFixed(1)}m/s</td><td>${(s.precipitation_sum || 0).toFixed(1)}mm</td><td>${(s.cloud_cover_avg || 0).toFixed(0)}%</td></tr>`;
+    values.forEach((v, i) => {
+        const x = 40 + i * 15;
+        const y = 200 - (v / maxVal) * 180;
+        const nextX = 40 + (i + 1) * 15;
+        const nextY = i < values.length - 1 ? 200 - (values[i+1] / maxVal) * 180 : y;
+
+        if (i === 0) svg += `<polyline points="${x},${y}`;
+        else svg += ` ${x},${y}`;
     });
 
-    html += '</tbody></table>';
-    container.innerHTML = html;
+    svg += `" fill="none" stroke="#2563eb" stroke-width="2"/></svg>`;
+    document.getElementById('daily-stats-chart').innerHTML = svg;
 }
+
+document.addEventListener('DOMContentLoaded', initializeLocationSelects);
