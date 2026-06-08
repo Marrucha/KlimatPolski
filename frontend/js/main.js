@@ -228,3 +228,144 @@ function showError(message) {
         errorEl.classList.add('hidden');
     }
 }
+
+// === TAB SWITCHING ===
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    });
+});
+
+// === TAB 2: DANE SUROWE ===
+document.getElementById('load-raw-data-btn')?.addEventListener('click', loadRawData);
+
+async function loadRawData() {
+    try {
+        const month = document.getElementById('raw-month-picker').value;
+        const hour = document.getElementById('raw-hour-select').value;
+
+        if (!month) {
+            showError('Wybierz miesiąc');
+            return;
+        }
+
+        showLoading(true);
+        showError('');
+
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = `${year}-${monthNum}-31`;
+
+        const response = await fetch(
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&limit=5000`,
+            {
+                headers: {
+                    'apikey': API_CONFIG.SUPABASE_KEY,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const records = await response.json();
+        const filtered = records.filter(r => {
+            const time = new Date(r.forecast_time);
+            return time.getHours() == hour;
+        });
+
+        displayRawDataTable(filtered);
+    } catch (error) {
+        showError(`Błąd: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function displayRawDataTable(records) {
+    const container = document.getElementById('raw-data-table');
+
+    if (!records || records.length === 0) {
+        container.innerHTML = '<p class="placeholder">Brak danych</p>';
+        return;
+    }
+
+    let html = `<table><thead><tr><th>Data</th><th>Godzina</th><th>Lokalizacja</th><th>Temp (°C)</th><th>Wiatr (m/s)</th><th>Kierunek (°)</th><th>Opady (mm)</th><th>Chmury (%)</th></tr></thead><tbody>`;
+
+    records.forEach(r => {
+        const date = new Date(r.forecast_time);
+        html += `<tr><td>${date.toLocaleDateString('pl-PL')}</td><td>${String(date.getHours()).padStart(2, '0')}:00</td><td>${r.location_name}</td><td>${(r.temperature_2m || 0).toFixed(1)}</td><td>${(r.wind_speed_10m || 0).toFixed(1)}</td><td>${(r.wind_direction_10m || 0).toFixed(0)}</td><td>${(r.precipitation_6h || 0).toFixed(1)}</td><td>${(r.cloud_cover_total || 0).toFixed(0)}</td></tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// === TAB 3: STATYSTYKI DZIENNE ===
+document.getElementById('load-daily-stats-btn')?.addEventListener('click', loadDailyStats);
+
+async function loadDailyStats() {
+    try {
+        const month = document.getElementById('daily-month-picker').value;
+
+        if (!month) {
+            showError('Wybierz miesiąc');
+            return;
+        }
+
+        showLoading(true);
+        showError('');
+
+        const [year, monthNum] = month.split('-');
+        const startDate = `${year}-${monthNum}-01`;
+        const endDate = `${year}-${monthNum}-31`;
+
+        const response = await fetch(
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?date=gte.${startDate}&date=lte.${endDate}&limit=5000`,
+            {
+                headers: {
+                    'apikey': API_CONFIG.SUPABASE_KEY,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const stats = await response.json();
+        displayDailyStatsTable(stats);
+    } catch (error) {
+        showError(`Błąd: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function displayDailyStatsTable(stats) {
+    const container = document.getElementById('daily-stats-table');
+
+    if (!stats || stats.length === 0) {
+        container.innerHTML = '<p class="placeholder">Brak danych</p>';
+        return;
+    }
+
+    let html = `<table><thead><tr><th>Data</th><th>Lokalizacja</th><th>Temp Min</th><th>Temp Max</th><th>Temp Śr</th><th>Wiatr Śr</th><th>Wiatr Max</th><th>Opady</th><th>Chmury</th></tr></thead><tbody>`;
+
+    stats.forEach(s => {
+        html += `<tr><td>${s.date}</td><td>${s.location_name}</td><td>${(s.temp_min || 0).toFixed(1)}°C</td><td>${(s.temp_max || 0).toFixed(1)}°C</td><td>${(s.temp_avg || 0).toFixed(1)}°C</td><td>${(s.wind_speed_avg || 0).toFixed(1)}m/s</td><td>${(s.wind_speed_max || 0).toFixed(1)}m/s</td><td>${(s.precipitation_sum || 0).toFixed(1)}mm</td><td>${(s.cloud_cover_avg || 0).toFixed(0)}%</td></tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
