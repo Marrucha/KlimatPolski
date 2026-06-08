@@ -148,38 +148,42 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         return
 
     total_records = 0
+    variables = [
+        '2m_temperature',
+        '10m_u_component_of_wind',
+        '10m_v_component_of_wind',
+        'total_precipitation',
+        'mean_sea_level_pressure',
+        '10m_wind_gust',
+        'total_cloud_cover'
+    ]
 
-    for year in range(start_year, end_year + 1):
-        logger.info(f"\n>>> ROK {year}")
+    for var in variables:
+        logger.info(f"\n>>> ZMIENNA: {var}")
 
-        try:
-            # Pobierz temperaturę
-            nc_temp = fetch_era5_year(year, '2m_temperature')
-            logger.info(f"  Plik pobrany: {nc_temp}")
+        for year in range(start_year, end_year + 1):
+            logger.info(f"  ROK {year}")
 
-            records_temp = parse_era5_to_records(nc_temp)
-            logger.info(f"  Sparsowano: {len(records_temp)} rekordów")
+            try:
+                nc_file = fetch_era5_year(year, var)
+                logger.info(f"    Plik pobrany: {nc_file}")
 
-            # TODO: Pobierz wiatr (u, v) i inne zmienne
-            # nc_u = fetch_era5_year(year, 'u_component_of_wind')
-            # records_u = parse_era5_to_records(nc_u)
+                records = parse_era5_to_records(nc_file)
+                logger.info(f"    Sparsowano: {len(records)} rekordów")
 
-            # Merge records
-            records = records_temp  # + records_u + ...
+                if not records:
+                    logger.warning(f"    Brak rekordów dla {year}")
+                    continue
 
-            if not records:
-                logger.warning(f"Brak rekordów dla {year}")
+                # Wstaw do Supabase
+                inserted, _ = supabase.insert_weather_records(records)
+                total_records += inserted
+
+                logger.info(f"    ✓ Wstawiono {inserted} rekordów (razem: {total_records})")
+
+            except Exception as e:
+                logger.error(f"    ✗ Błąd dla {year}: {e}")
                 continue
-
-            # Wstaw do Supabase
-            inserted, _ = supabase.insert_weather_records(records)
-            total_records += inserted
-
-            logger.info(f"✓ {year}: wstawiono {inserted} rekordów (razem: {total_records})")
-
-        except Exception as e:
-            logger.error(f"✗ Błąd dla {year}: {e}")
-            continue
 
     supabase.close()
 
