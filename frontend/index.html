@@ -1,13 +1,122 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KlimatPolski – Archiwalna Pogoda Polski</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strefa Czystego Internetu - Moduł Pogodowy (Lubelszczyzna)</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Nagłówek -->
+        <header>
+            <h1>🌤️ Pogoda Lubelszczyzny</h1>
+            <p class="subtitle">Archiwalne dane meteorologiczne z ostatnich 50 lat</p>
+        </header>
+
+        <!-- Panel kontrolny -->
+        <section class="controls">
+            <div class="control-group">
+                <label for="date-picker">Wybierz datę:</label>
+                <input type="date" id="date-picker" />
+            </div>
+
+            <div class="control-group">
+                <label for="location-select">Wybierz lokalizację:</label>
+                <select id="location-select">
+                    <option value="">-- Załaduj dostępne lokalizacje --</option>
+                </select>
+            </div>
+
+            <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
+        </section>
+
+        <!-- Mapa -->
+        <section class="map-section">
+            <h2>Mapa</h2>
+            <div id="map" class="map-container">
+                <p class="placeholder">Mapa będzie wyświetlona tutaj (Leaflet)</p>
+            </div>
+        </section>
+
+        <!-- Wykresy i statystyki -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <h3>Temperatura</h3>
+                <div id="temp-chart" class="chart-container"></div>
+                <div class="stat-values">
+                    <div class="stat-item">
+                        <span class="label">Min:</span>
+                        <span id="temp-min" class="value">--</span>°C
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Max:</span>
+                        <span id="temp-max" class="value">--</span>°C
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Średnia:</span>
+                        <span id="temp-avg" class="value">--</span>°C
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Opady</h3>
+                <div id="precip-chart" class="chart-container"></div>
+                <div class="stat-values">
+                    <div class="stat-item">
+                        <span class="label">Suma (24h):</span>
+                        <span id="precip-sum" class="value">--</span>mm
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Wiatr</h3>
+                <div id="wind-chart" class="chart-container"></div>
+                <div class="stat-values">
+                    <div class="stat-item">
+                        <span class="label">Prędkość (średnia):</span>
+                        <span id="wind-avg" class="value">--</span>m/s
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Maksimum:</span>
+                        <span id="wind-max" class="value">--</span>m/s
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Kierunek dominujący:</span>
+                        <span id="wind-dir" class="value">--</span>°
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Zachmurzenie</h3>
+                <div id="cloud-chart" class="chart-container"></div>
+                <div class="stat-values">
+                    <div class="stat-item">
+                        <span class="label">Średnie:</span>
+                        <span id="cloud-avg" class="value">--</span>%
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status ładowania -->
+        <div id="loading" class="loading hidden">
+            <p>⏳ Ładowanie danych...</p>
+        </div>
+
+        <div id="error-message" class="error-message hidden"></div>
+    </div>
+
+    <footer>
+        <p>Dane źródłowe: NOAA GFS / ERDDAP • Baza: Supabase • Hosting: Firebase</p>
+    </footer>
+
+    <!-- Skrypty -->
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/main.js"></script>
+</body>
 </html>

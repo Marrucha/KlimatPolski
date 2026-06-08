@@ -1,0 +1,51 @@
+name: Fetch Weather Data
+
+on:
+  schedule:
+    # Uruchamia się codziennie o 2 AM UTC (4 AM CEST)
+    - cron: '0 2 * * *'
+
+  # Umożliwia ręczne uruchomienie z GitHub UI
+  workflow_dispatch:
+
+jobs:
+  fetch_weather:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run weather data fetcher
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          LOG_LEVEL: INFO
+        run: |
+          python scripts/fetch_data.py
+
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: sync-logs
+          path: logs/
+
+      - name: Notify on error
+        if: failure()
+        run: |
+          echo "⚠ Weather data synchronization failed!"
+          echo "Check the logs in GitHub Actions."

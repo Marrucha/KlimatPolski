@@ -1,84 +1,176 @@
-# KlimatPolski – Archiwalna Pogoda Polski
+# 🌤️ Strefa Czystego Internetu – Moduł Pogodowy (Lubelszczyzna)
 
-Interaktywna platforma do analizy danych pogodowych z ostatnich 50 lat dla Polski.
+Automatyczny pipeline pogodowy dla województwa lubelskiego. Codziennie pobiera dane z NOAA GFS, przechowuje w Supabase i wyświetla na interaktywnym dashboardzie.
 
-Dane pochodzą z:
-- **ERA5** – Copernicus Climate Data Store (0.25° x 0.25°)
-- **NCEP/NCAR Reanalysis** – NOAA
+## 🚀 Cechy
 
-## 🚀 Quick Start
+- ✅ **Automatyczna synchronizacja** – GitHub Actions cron (codziennie 2 AM UTC)
+- ✅ **Bezserwerowe** – No backend server, Firebase Hosting
+- ✅ **Optymalne** – Free Tier Supabase + Firestore + Firebase
+- ✅ **Lekkie** – Vanilla JS, bez React/npm build
+- ✅ **Szybkie** – Static hosting, RLS policies, caching
 
-### Backend
+## 📊 Zmienne pogodowe
+
+Dla każdego punktu siatki (0.25° × 0.25°) w Lubelszczyznie:
+- 🌡️ **Temperatura** (2m above ground)
+- 💨 **Wiatr** (10m) – prędkość + kierunek
+- 🌧️ **Opady** (suma 6h)
+- ☁️ **Zachmurzenie** (%)
+
+## 🏗️ Architektura
+
+```
+[NOAA GFS ERDDAP]
+        ↓ (Python)
+[GitHub Actions Cron]
+        ↓
+[Python Script]
+   ├─ Fetch (xarray)
+   ├─ Parse (weather_data)
+   ├─ Aggregate (daily_stats)
+   └─ Insert (Supabase psycopg2)
+        ↓
+[Supabase PostgreSQL]
+        ↓
+[Frontend (Vanilla JS)] ← REST API
+        ↓
+[Firebase Hosting]
+```
+
+## ⚡ Szybki start
+
+### 1. Setup Supabase
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Klonuj schema do Supabase SQL Editor
+# Otwórz: https://app.supabase.com → SQL Editor
+# Copy-paste zawartość sql/schema.sql
+# Execute
+```
+
+### 2. Setup GitHub Actions
+
+Dodaj Secrets w: GitHub → Settings → Secrets and variables → Actions
+```
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_API_KEY=your-key-here
+FIREBASE_PROJECT_ID=xxx
+FIREBASE_PRIVATE_KEY=xxx
+FIREBASE_CLIENT_EMAIL=xxx
+```
+
+### 3. Test lokalnie
+
+```bash
 pip install -r requirements.txt
 cp .env.example .env
-# Edytuj .env z prawdziwymi credentials
-uvicorn app.main:app --reload
+# Edytuj .env
+python scripts/fetch_data.py
 ```
 
-API dostępny na `http://localhost:8000`
+Sprawdź Supabase Tables → weather_data
 
-### Frontend
+### 4. Deploy Frontend
 
 ```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
+npm install -g firebase-tools
+firebase login
+firebase deploy --only hosting
 ```
 
-App dostępny na `http://localhost:5173`
-
-## 📁 Struktura
+## 📁 Struktura projektu
 
 ```
 .
-├── backend/              # FastAPI server
-├── frontend/             # React + TypeScript
-├── CLAUDE.md            # Notatki dla Claude Code
+├── .github/workflows/
+│   └── fetch-weather-data.yml       # Cron: codziennie 2 AM
+├── scripts/
+│   ├── fetch_data.py                # Main orchestrator
+│   ├── config.py                    # Constants
+│   ├── src/
+│   │   ├── erddap_client.py         # NOAA API
+│   │   ├── supabase_client.py       # DB write
+│   │   ├── aggregator.py            # Daily stats
+│   │   └── utils.py                 # Helpers
+│   └── requirements.txt
+├── frontend/
+│   ├── index.html
+│   ├── css/style.css
+│   ├── js/
+│   │   ├── main.js
+│   │   ├── api.js
+│   │   └── charts.js
+│   └── assets/
+├── sql/schema.sql
+├── firebase.json
+├── .env.example
 └── README.md
 ```
 
 ## 🔧 Tech Stack
 
-- **Backend**: Python 3.11, FastAPI, xarray, netCDF4
-- **Frontend**: React 18, TypeScript, Leaflet, Recharts
-- **Storage**: AWS S3
-- **Data**: ERA5 (CDS), NCEP/NCAR
+- **Data Pipeline**: Python 3.11, xarray, psycopg2
+- **Database**: Supabase (PostgreSQL)
+- **Cache**: Firestore
+- **Frontend**: Vanilla JavaScript, HTML, CSS (no build)
+- **Hosting**: Firebase Hosting
+- **Scheduler**: GitHub Actions (free)
+- **Data**: NOAA GFS via ERDDAP
 
-## 📋 MVP Features
+## 📚 Operacje
 
-- [ ] Mapa interaktywna – wybór lokalizacji
-- [ ] Historia temperatury – rozkład dla wybranego okresu
-- [ ] Historia opadów – suma opadów
-- [ ] Wskaźniki klimatyczne – śr., min/max
+### Sprawdzenie ostatniej synchronizacji
 
-## 🔐 Credentials
-
-Wymagane zmienne `.env`:
-
-**Backend**:
-```
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-COPERNICUS_UID=...
-COPERNICUS_PASSWORD=...
+```sql
+SELECT * FROM sync_logs ORDER BY created_at DESC LIMIT 1;
 ```
 
-**Frontend**:
-```
-VITE_API_URL=http://localhost:8000/api
+### Pobranie danych dla lokalizacji
+
+```sql
+SELECT * FROM weather_data 
+WHERE latitude = 51.25 AND longitude = 22.50
+ORDER BY forecast_time DESC 
+LIMIT 24;
 ```
 
-## 📚 Linki
+### Wymazeanie starych danych (> 365 dni)
 
-- [ERA5 CDS](https://cds.climate.copernicus.eu/)
-- [NCEP/NCAR Reanalysis](https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html)
+```sql
+DELETE FROM weather_data 
+WHERE forecast_time < NOW() - INTERVAL '365 days';
+```
+
+## 💰 Koszty (Free Tier)
+
+| Usługa | Free Tier | Limit |
+|--------|-----------|-------|
+| Supabase | 500 MB | Storage + API |
+| Firebase Hosting | Unlimited | Bandwidth |
+| Firestore | 1 GB | Storage + queries |
+| GitHub Actions | 2,000 min/mth | Unlimited for public repos |
+
+**Total cost: $0/mth** ✅
+
+## 🐛 Debugging
+
+Logi GitHub Actions:
+```
+GitHub → Actions → Fetch Weather Data → Latest run → logs
+```
+
+Logi Supabase:
+```sql
+SELECT * FROM sync_logs WHERE status = 'error' ORDER BY created_at DESC;
+```
+
+## 📖 Dokumentacja
+
+Szczegóły architekturalne: [`CLAUDE.md`](CLAUDE.md)
 
 ---
 
-Patrz `CLAUDE.md` dla szczegółów architektonicznych.
+**Źródła danych**: NOAA GFS (Global Forecast System)  
+**Aktualizacja**: codziennie o 2 AM UTC  
+**Obszar**: Lubelszczyzna (50.2°N–52.2°N, 21.8°E–24.2°E)
