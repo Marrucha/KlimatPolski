@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pobieranie historycznych danych ERA5 dla Lubelszczyzny (2005-2025).
-Wstawienie do Supabase batch po batch.
+Wstawienie do Supabase w ujęciu miesięcznym (dla oszczędności pamięci i stabilności).
 
 Wymaga:
 - ~/.cdsapi z credentials (lub zmienne env CDS_UID, CDS_API_KEY)
@@ -45,28 +45,29 @@ def setup_cds_credentials():
         logger.info("✓ Zapisano CDS credentials")
 
 
-def fetch_era5_year(year: int, variables: list) -> str:
+def fetch_era5_month(year: int, month: int, variables: list) -> str:
     """
-    Pobiera wybrane zmienne ERA5 dla danego roku w jednym zapytaniu.
+    Pobiera wybrane zmienne ERA5 dla danego miesiąca i roku.
 
     Args:
         year: Rok do pobrania (np. 2020)
+        month: Miesiąc do pobrania (1-12)
         variables: Lista zmiennych ERA5 do pobrania
 
     Returns:
         Ścieżka do pobranego pliku .nc
     """
-    logger.info(f"Pobieranie ERA5 (zmienne: {variables}) dla roku {year}...")
+    logger.info(f"Pobieranie ERA5 dla {year}-{month:02d} (zmienne: {variables})...")
 
     client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
-    output_file = f"era5_all_vars_{year}.nc"
+    output_file = f"era5_all_vars_{year}_{month:02d}.nc"
 
     request = {
         'product_type': 'reanalysis',
         'data_format': 'netcdf',
         'area': ERA5_AREA,
         'year': str(year),
-        'month': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
+        'month': f"{month:02d}",
         'day': [f"{d:02d}" for d in range(1, 32)],
         'time': ['00:00', '06:00', '12:00', '18:00'],
         'variable': variables,
@@ -188,14 +189,14 @@ def parse_era5_to_records(netcdf_file: str) -> list:
 
 def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
     """
-    Pobiera dane ERA5 dla zakresu lat i wstawia do Supabase.
+    Pobiera dane ERA5 dla zakresu lat w ujęciu miesięcznym i wstawia do Supabase.
 
     Args:
         start_year: Rok początkowy
         end_year: Rok końcowy (włącznie)
     """
     logger.info("=" * 60)
-    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (All variables)")
+    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (Miesięczny)")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -205,7 +206,7 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         logger.error("Nie można się połączyć z Supabase")
         return
 
-    # Pobieramy wszystkie wymagane zmienne w jednym pliku na rok
+    # Pobieramy wszystkie wymagane zmienne w jednym pliku na miesiąc
     variables = [
         '2m_temperature',
         '10m_u_component_of_wind',
@@ -219,28 +220,38 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
     total_records = 0
 
     for year in range(start_year, end_year + 1):
-        logger.info(f"\n>>> ROK {year}")
+        for month in range(1, 13):
+            logger.info(f"\n>>> OKRES {year}-{month:02d}")
 
-        try:
-            nc_file = fetch_era5_year(year, variables)
-            logger.info(f"    Plik pobrany: {nc_file}")
+            nc_file = None
+            try:
+                nc_file = fetch_era5_month(year, month, variables)
+                logger.info(f"    Plik pobrany: {nc_file}")
 
-            records = parse_era5_to_records(nc_file)
-            logger.info(f"    Sparsowano: {len(records)} rekordów")
+                records = parse_era5_to_records(nc_file)
+                logger.info(f"    Sparsowano: {len(records)} rekordów")
 
-            if not records:
-                logger.warning(f"    Brak rekordów dla {year}")
+                if not records:
+                    logger.warning(f"    Brak rekordów dla {year}-{month:02d}")
+                    continue
+
+                # Wstaw / Zaktualizuj w Supabase
+                inserted, _ = supabase.insert_weather_records(records)
+                total_records += inserted
+
+                logger.info(f"    ✓ Wstawiono/zaktualizowano {inserted} rekordów (razem: {total_records})")
+
+            except Exception as e:
+                logger.error(f"    ✗ Błąd dla {year}-{month:02d}: {e}")
                 continue
-
-            # Wstaw / Zaktualizuj w Supabase
-            inserted, _ = supabase.insert_weather_records(records)
-            total_records += inserted
-
-            logger.info(f"    ✓ Wstawiono/zaktualizowano {inserted} rekordów (razem: {total_records})")
-
-        except Exception as e:
-            logger.error(f"    ✗ Błąd dla {year}: {e}")
-            continue
+            finally:
+                # Usuń plik NetCDF, aby oszczędzać miejsce na dysku
+                if nc_file and os.path.exists(nc_file):
+                    try:
+                        os.remove(nc_file)
+                        logger.info(f"    ✓ Usunięto plik tymczasowy {nc_file}")
+                    except Exception as e:
+                        logger.warning(f"    ⚠ Nie udało się usunąć pliku {nc_file}: {e}")
 
     supabase.close()
 
