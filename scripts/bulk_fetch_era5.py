@@ -10,6 +10,7 @@ Wymaga:
 import os
 import sys
 import logging
+import math
 from datetime import datetime
 import cdsapi
 import xarray as xr
@@ -81,7 +82,7 @@ def fetch_era5_month(year: int, month: int, variables: list) -> str:
 def parse_era5_to_records(netcdf_file: str) -> list:
     """
     Parsuje plik NetCDF ERA5 do rekordów dla Supabase.
-    Automatycznie przelicza jednostki oraz prędkość i kierunek wiatru.
+    Automatycznie przelicza jednostki, wiatr oraz wilgotność względną.
 
     Args:
         netcdf_file: Ścieżka do pliku .nc
@@ -108,7 +109,20 @@ def parse_era5_to_records(netcdf_file: str) -> list:
         'tp': 'precipitation_6h',
         'total_precipitation': 'precipitation_6h',
         'tcc': 'cloud_cover_total',
-        'total_cloud_cover': 'cloud_cover_total'
+        'total_cloud_cover': 'cloud_cover_total',
+        
+        # Nowe zmienne żądane przez użytkownika
+        'sst': 'sea_surface_temperature',
+        'sea_surface_temperature': 'sea_surface_temperature',
+        'msl': 'pressure_msl',
+        'mean_sea_level_pressure': 'pressure_msl',
+        'fg10': 'wind_gust_10m',
+        '10fg': 'wind_gust_10m',
+        '10m_wind_gust_since_previous_post_processing': 'wind_gust_10m',
+        'sf': 'snowfall_6h',
+        'snowfall': 'snowfall_6h',
+        'd2m': 'dewpoint_temperature_2m',
+        '2m_dewpoint_temperature': 'dewpoint_temperature_2m'
     }
 
     # Znajdź nazwę zmiennej czasowej
@@ -149,6 +163,8 @@ def parse_era5_to_records(netcdf_file: str) -> list:
 
                     u_wind = None
                     v_wind = None
+                    t2m = None
+                    d2m = None
 
                     # Pobierz wartości dla wszystkich dostępnych zmiennych
                     for db_col, var_da in var_arrays.items():
@@ -160,7 +176,19 @@ def parse_era5_to_records(netcdf_file: str) -> list:
                         if db_col == 'temperature_2m':
                             if val > 100:  # Z Kelwinów na Celsjusze
                                 val = val - 273.15
+                            t2m = val
+                        elif db_col == 'sea_surface_temperature':
+                            if val > 100:  # Z Kelwinów na Celsjusze
+                                val = val - 273.15
+                        elif db_col == 'dewpoint_temperature_2m':
+                            if val > 100:  # Z Kelwinów na Celsjusze
+                                val = val - 273.15
+                            d2m = val
+                        elif db_col == 'pressure_msl':
+                            val = val / 100.0  # Z Pa na hPa
                         elif db_col == 'precipitation_6h':
+                            val = val * 1000.0  # Z metrów na mm
+                        elif db_col == 'snowfall_6h':
                             val = val * 1000.0  # Z metrów na mm
                         elif db_col == 'cloud_cover_total':
                             if val <= 1.0:  # Z ułamka na procenty
@@ -173,10 +201,19 @@ def parse_era5_to_records(netcdf_file: str) -> list:
                         elif db_col == 'v_wind_10m':
                             v_wind = val
 
-                    # Oblicz prędkość i kierunek wiatru, jeśli mamy obie składowe (U i V)
+                    # Oblicz prędkość i kierunek wiatru
                     if u_wind is not None and v_wind is not None:
                         record['wind_speed_10m'] = calculate_wind_speed(u_wind, v_wind)
                         record['wind_direction_10m'] = calculate_wind_direction(u_wind, v_wind)
+
+                    # Oblicz wilgotność względną z T2m i D2m (formuła Augusta-Roche'a-Magnusa)
+                    if t2m is not None and d2m is not None:
+                        try:
+                            numerator = math.exp((17.625 * d2m) / (243.04 + d2m))
+                            denominator = math.exp((17.625 * t2m) / (243.04 + t2m))
+                            record['relative_humidity_2m'] = min(100.0, max(0.0, 100.0 * (numerator / denominator)))
+                        except Exception as e:
+                            logger.warning(f"Błąd przy obliczaniu wilgotności: {e}")
 
                     records.append(record)
                 except Exception as e:
@@ -196,7 +233,7 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         end_year: Rok końcowy (włącznie)
     """
     logger.info("=" * 60)
-    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (Miesięczny)")
+    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (Rozszerzony)")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -206,15 +243,18 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         logger.error("Nie można się połączyć z Supabase")
         return
 
-    # Pobieramy wszystkie wymagane zmienne w jednym pliku na miesiąc
+    # Rozszerzona lista zmiennych ERA5
     variables = [
         '2m_temperature',
         '10m_u_component_of_wind',
         '10m_v_component_of_wind',
         'total_precipitation',
         'mean_sea_level_pressure',
-        '10m_wind_gust',
-        'total_cloud_cover'
+        '10m_wind_gust_since_previous_post_processing',
+        'total_cloud_cover',
+        'sea_surface_temperature',
+        'snowfall',
+        '2m_dewpoint_temperature'
     ]
 
     total_records = 0

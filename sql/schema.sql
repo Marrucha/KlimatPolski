@@ -20,6 +20,12 @@ CREATE TABLE IF NOT EXISTS weather_data (
     wind_direction_10m DECIMAL(6, 2),         -- °, kierunek: atan2(U, V) * 180/pi
     precipitation_6h DECIMAL(8, 2),           -- mm, suma opadów z 6 godzin (APCP)
     cloud_cover_total DECIMAL(5, 2),          -- %, zachmurzenie całkowite (TCDC)
+    sea_surface_temperature DECIMAL(5, 2),    -- °C, temperatura powierzchni wody (SST)
+    pressure_msl DECIMAL(8, 2),               -- hPa, średnie ciśnienie na poziomie morza (MSL)
+    wind_gust_10m DECIMAL(5, 2),              -- m/s, porywy wiatru na 10m (10FG)
+    snowfall_6h DECIMAL(8, 2),                -- mm (opad wody), suma opadu śniegu z 6 godzin (SF)
+    dewpoint_temperature_2m DECIMAL(5, 2),    -- °C, temperatura punktu rosy na wysokości 2m (D2M)
+    relative_humidity_2m DECIMAL(5, 2),       -- %, wilgotność względna na wysokości 2m (wyliczona z T2m i D2m)
 
     -- Metadane techniczne
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
