@@ -51,17 +51,17 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
         variable: Zmienna ERA5 (temperature_2m, u_wind_10m, v_wind_10m, itd.)
 
     Returns:
-        Ścieżka do pobranego pliku .grib
+        Ścieżka do pobranego pliku .nc
     """
     logger.info(f"Pobieranie ERA5 {variable} dla {year}...")
 
     client = cdsapi.Client(url=CDS_URL, key=f"{CDS_UID}:{CDS_API_KEY}")
 
-    output_file = f"era5_{variable}_{year}.grib"
+    output_file = f"era5_{variable}_{year}.nc"
 
     request = {
         'product_type': 'reanalysis',
-        'format': 'grib',
+        'format': 'netcdf',
         'area': ERA5_AREA,
         'year': str(year),
         'month': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
@@ -75,22 +75,22 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
     return output_file
 
 
-def parse_era5_to_records(grib_file: str) -> list:
+def parse_era5_to_records(netcdf_file: str) -> list:
     """
-    Parsuje plik GRIB ERA5 do rekordów dla Supabase.
+    Parsuje plik NetCDF ERA5 do rekordów dla Supabase.
 
     Args:
-        grib_file: Ścieżka do pliku .grib
+        netcdf_file: Ścieżka do pliku .nc
 
     Returns:
         Lista słowników z danymi
     """
-    logger.info(f"Parsowanie {grib_file}...")
+    logger.info(f"Parsowanie {netcdf_file}...")
 
     try:
-        ds = xr.open_dataset(grib_file, engine='cfgrib')
+        ds = xr.open_dataset(netcdf_file, engine='h5netcdf')
     except Exception as e:
-        logger.error(f"Błąd przy otwieraniu {grib_file}: {e}")
+        logger.error(f"Błąd przy otwieraniu {netcdf_file}: {e}")
         return []
 
     records = []

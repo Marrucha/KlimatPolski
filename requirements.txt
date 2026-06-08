@@ -1,7 +1,7 @@
 # === FETCH DANYCH ===
 requests==2.31.0          # HTTP do NOAA ERDDAP
 xarray==2023.12.0         # Parsowanie danych sieciowych (netCDF)
-netCDF4==1.6.5            # Obsługa formatów meteorologicznych
+h5netcdf==1.2.0           # NetCDF bez HDF5 dependency (Windows-friendly)
 numpy==1.26.0             # Operacje numeryczne, obliczenia wiatru
 pandas==2.1.1             # Manipulacja danymi, agregacje
 
