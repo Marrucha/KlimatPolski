@@ -334,7 +334,10 @@ async function loadDailyStats() {
 
         const [year, monthNum] = month.split('-');
         const startDate = `${year}-${monthNum}-01`;
-        const endDate = `${year}-${monthNum}-31`;
+
+        const dateObj = new Date(year, parseInt(monthNum), 0);
+        const lastDay = dateObj.getDate();
+        const endDate = `${year}-${monthNum}-${String(lastDay).padStart(2, '0')}`;
 
         const response = await fetch(
             `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?date=gte.${startDate}&date=lte.${endDate}&limit=5000`,
