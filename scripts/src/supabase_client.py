@@ -71,7 +71,7 @@ class SupabaseClient:
                 headers["Prefer"] = "return=representation,resolution=merge-duplicates"
 
                 response = requests.post(
-                    f"{self.base_url}/rest/v1/{SUPABASE_TABLE_WEATHER}",
+                    f"{self.base_url}/rest/v1/{SUPABASE_TABLE_WEATHER}?on_conflict=latitude,longitude,forecast_time",
                     headers=headers,
                     json=batch,
                     timeout=30
@@ -109,7 +109,7 @@ class SupabaseClient:
             headers["Prefer"] = "return=representation,resolution=merge-duplicates"
 
             response = requests.post(
-                f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}",
+                f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}?on_conflict=date,latitude,longitude",
                 headers=headers,
                 json=stats,
                 timeout=30
