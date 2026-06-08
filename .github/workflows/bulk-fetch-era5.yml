@@ -1,0 +1,47 @@
+name: Bulk Fetch ERA5 (50 lat)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_year:
+        description: 'Rok początkowy'
+        required: false
+        default: '2005'
+      end_year:
+        description: 'Rok końcowy'
+        required: false
+        default: '2025'
+
+jobs:
+  bulk-fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 godzin dla free tier
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch ERA5 data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          CDS_UID: ${{ secrets.CDS_UID }}
+          CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
+        run: |
+          python scripts/bulk_fetch_era5.py ${{ github.event.inputs.start_year }} ${{ github.event.inputs.end_year }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fetch-logs
+          path: logs/
+          retention-days: 7

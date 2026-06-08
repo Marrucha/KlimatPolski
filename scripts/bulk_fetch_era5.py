@@ -183,4 +183,7 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
 
 
 if __name__ == '__main__':
-    bulk_fetch_era5(start_year=2020, end_year=2025)  # Start od 2020 dla testu
+    import sys
+    start_year = int(sys.argv[1]) if len(sys.argv) > 1 else 2005
+    end_year = int(sys.argv[2]) if len(sys.argv) > 2 else 2025
+    bulk_fetch_era5(start_year=start_year, end_year=end_year)
