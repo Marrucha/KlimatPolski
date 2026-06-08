@@ -98,18 +98,28 @@ def parse_era5_to_records(netcdf_file: str) -> list:
 
     records = []
 
+    # Znajdź nazwę zmiennej czasowej
+    time_coords = [c for c in ['time', 'valid_time'] if c in ds.coords or c in ds.variables]
+    if not time_coords:
+        logger.error(f"Brak zmiennej czasowej w pliku. Współrzędne: {list(ds.coords.keys())}")
+        return []
+    time_var_name = time_coords[0]
+
     # Iteruj po zmiennych i punktach
     for var_name in ds.data_vars:
         var = ds[var_name]
         logger.info(f"  Zmienna: {var_name}, shape: {var.shape}")
 
-        for time_idx, time_val in enumerate(ds['time'].values):
+        for time_idx, time_val in enumerate(ds[time_var_name].values):
             for lat_idx, lat_val in enumerate(ds['latitude'].values):
                 for lon_idx, lon_val in enumerate(ds['longitude'].values):
                     try:
                         lat = float(lat_val)
                         lon = float(lon_val)
-                        value = float(var.isel(time=time_idx, latitude=lat_idx, longitude=lon_idx).values)
+                        
+                        isel_dict = {time_var_name: time_idx, 'latitude': lat_idx, 'longitude': lon_idx}
+                        isel_dict = {k: v for k, v in isel_dict.items() if k in var.dims}
+                        value = float(var.isel(**isel_dict).values)
 
                         record = {
                             'latitude': lat,
