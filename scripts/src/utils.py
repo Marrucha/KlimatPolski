@@ -3,11 +3,15 @@ Funkcje utility: obliczenia wiatru, transformacje danych, logowanie.
 """
 import math
 import logging
+import os
 from datetime import datetime
 from typing import Tuple
 from config import LOG_LEVEL, LOG_FILE
 
 # === LOGGER ===
+# Stwórz folder logs/ jeśli nie istnieje
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+
 logging.basicConfig(
     level=LOG_LEVEL,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
