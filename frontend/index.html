@@ -116,18 +116,20 @@
         <div id="tab-raw-data" class="tab-content">
             <section class="controls">
                 <div class="control-group">
-                    <label for="raw-month-picker">Wybierz miesiąc:</label>
-                    <input type="month" id="raw-month-picker" />
+                    <label for="raw-location-select">Wybierz lokalizację:</label>
+                    <select id="raw-location-select">
+                        <option value="">-- Załaduj lokalizacje --</option>
+                    </select>
                 </div>
 
                 <div class="control-group">
-                    <label for="raw-hour-select">Wybierz godzinę:</label>
-                    <select id="raw-hour-select">
-                        <option value="0">00:00</option>
-                        <option value="6">06:00</option>
-                        <option value="12">12:00</option>
-                        <option value="18">18:00</option>
-                    </select>
+                    <label for="raw-date-from">Data OD:</label>
+                    <input type="date" id="raw-date-from" />
+                </div>
+
+                <div class="control-group">
+                    <label for="raw-date-to">Data DO:</label>
+                    <input type="date" id="raw-date-to" />
                 </div>
 
                 <button id="load-raw-data-btn" class="btn-primary">Załaduj dane</button>
@@ -145,18 +147,34 @@
         <div id="tab-daily-stats" class="tab-content">
             <section class="controls">
                 <div class="control-group">
+                    <label for="daily-location-select">Wybierz lokalizację:</label>
+                    <select id="daily-location-select">
+                        <option value="">-- Załaduj lokalizacje --</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="daily-measure-select">Wybierz miarę:</label>
+                    <select id="daily-measure-select">
+                        <option value="temp_avg">Temperatura (średnia)</option>
+                        <option value="temp_min_max">Temperatura (min/max)</option>
+                        <option value="wind_speed_avg">Wiatr (średnia)</option>
+                        <option value="precipitation_sum">Opady</option>
+                        <option value="cloud_cover_avg">Zachmurzenie</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
                     <label for="daily-month-picker">Wybierz miesiąc:</label>
                     <input type="month" id="daily-month-picker" />
                 </div>
 
-                <button id="load-daily-stats-btn" class="btn-primary">Załaduj statystyki</button>
+                <button id="load-daily-stats-btn" class="btn-primary">Załaduj dane</button>
             </section>
 
             <section class="data-table-section">
                 <h2>Statystyki dzienne</h2>
-                <div id="daily-stats-table" class="table-container">
-                    <p class="placeholder">Statystyki będą wyświetlone tutaj</p>
-                </div>
+                <div id="daily-stats-chart" class="chart-container"></div>
             </section>
         </div>
 
