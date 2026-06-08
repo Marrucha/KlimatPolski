@@ -215,6 +215,10 @@ def parse_era5_to_records(download_file: str) -> list:
                         isel_dict = {k: v for k, v in isel_dict.items() if k in var_da.dims}
                         val = float(var_da.isel(**isel_dict).values)
 
+                        # Pomiń wartości NaN/Inf (np. temperatura wody na lądzie), w bazie zapiszą się jako NULL
+                        if math.isnan(val) or math.isinf(val):
+                            continue
+
                         # Konwersja jednostek
                         if db_col == 'temperature_2m':
                             if val > 100:  # Z Kelwinów na Celsjusze
