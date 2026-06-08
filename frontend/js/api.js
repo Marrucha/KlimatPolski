@@ -14,7 +14,7 @@ const API_CONFIG = {
 async function getAvailableLocations() {
     try {
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?select=latitude,longitude,location_name&distinct=on(latitude,longitude)`,
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?select=latitude,longitude,location_name`,
             {
                 headers: {
                     'apikey': API_CONFIG.SUPABASE_KEY,
@@ -25,7 +25,17 @@ async function getAvailableLocations() {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const locations = await response.json();
+        let locations = await response.json();
+
+        // Deduplicate by (lat, lon)
+        const seen = new Set();
+        locations = locations.filter(loc => {
+            const key = `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
         return locations || [];
     } catch (error) {
         console.error('Błąd przy pobieraniu lokalizacji:', error);
