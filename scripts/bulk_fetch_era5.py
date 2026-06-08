@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import BBOX_NORTH, BBOX_SOUTH, BBOX_EAST, BBOX_WEST
 from src.supabase_client import SupabaseClient
-from src.utils import format_location_name
+from src.utils import format_location_name, calculate_wind_speed, calculate_wind_direction
 
 logging.basicConfig(level='INFO', format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ CDS_UID = os.getenv('CDS_UID', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_API_KEY = os.getenv('CDS_API_KEY', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_URL = 'https://cds.climate.copernicus.eu/api'
 
-# ERA5 Bounding box (Lubelszczyzna)
+# ERA5 Bounding box (Lubelszczyzny)
 ERA5_AREA = [BBOX_NORTH, BBOX_WEST, BBOX_SOUTH, BBOX_EAST]
 
 
@@ -45,22 +45,21 @@ def setup_cds_credentials():
         logger.info("✓ Zapisano CDS credentials")
 
 
-def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
+def fetch_era5_year(year: int, variables: list) -> str:
     """
-    Pobiera dane ERA5 dla wybranego roku.
+    Pobiera wybrane zmienne ERA5 dla danego roku w jednym zapytaniu.
 
     Args:
         year: Rok do pobrania (np. 2020)
-        variable: Zmienna ERA5 (temperature_2m, u_wind_10m, v_wind_10m, itd.)
+        variables: Lista zmiennych ERA5 do pobrania
 
     Returns:
         Ścieżka do pobranego pliku .nc
     """
-    logger.info(f"Pobieranie ERA5 {variable} dla {year}...")
+    logger.info(f"Pobieranie ERA5 (zmienne: {variables}) dla roku {year}...")
 
     client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
-
-    output_file = f"era5_{variable}_{year}.nc"
+    output_file = f"era5_all_vars_{year}.nc"
 
     request = {
         'product_type': 'reanalysis',
@@ -70,7 +69,7 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
         'month': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
         'day': [f"{d:02d}" for d in range(1, 32)],
         'time': ['00:00', '06:00', '12:00', '18:00'],
-        'variable': variable,
+        'variable': variables,
     }
 
     client.retrieve('reanalysis-era5-single-levels', request, output_file)
@@ -81,6 +80,7 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
 def parse_era5_to_records(netcdf_file: str) -> list:
     """
     Parsuje plik NetCDF ERA5 do rekordów dla Supabase.
+    Automatycznie przelicza jednostki oraz prędkość i kierunek wiatru.
 
     Args:
         netcdf_file: Ścieżka do pliku .nc
@@ -95,8 +95,6 @@ def parse_era5_to_records(netcdf_file: str) -> list:
     except Exception as e:
         logger.error(f"Błąd przy otwieraniu {netcdf_file}: {e}")
         return []
-
-    records = []
 
     # Słownik mapowania zmiennych NetCDF do kolumn w bazie danych
     ERA5_VAR_MAP = {
@@ -119,49 +117,70 @@ def parse_era5_to_records(netcdf_file: str) -> list:
         return []
     time_var_name = time_coords[0]
 
-    # Iteruj po zmiennych i punktach
+    records = []
+
+    times = ds[time_var_name].values
+    lats = ds['latitude'].values
+    lons = ds['longitude'].values
+
+    logger.info(f"Wymiary pliku: times={len(times)}, lats={len(lats)}, lons={len(lons)}")
+
+    # Wyciągnij data arrays dla optymalizacji szybkości pętli
+    var_arrays = {}
     for var_name in ds.data_vars:
-        if var_name not in ERA5_VAR_MAP:
-            logger.info(f"  Pomijam zmienną (brak mapowania kolumny w bazie): {var_name}")
-            continue
+        if var_name in ERA5_VAR_MAP:
+            var_arrays[ERA5_VAR_MAP[var_name]] = ds[var_name]
 
-        db_col_name = ERA5_VAR_MAP[var_name]
-        var = ds[var_name]
-        logger.info(f"  Zmienna: {var_name} -> {db_col_name}, shape: {var.shape}")
+    for time_idx, time_val in enumerate(times):
+        for lat_idx, lat_val in enumerate(lats):
+            for lon_idx, lon_val in enumerate(lons):
+                try:
+                    lat = float(lat_val)
+                    lon = float(lon_val)
+                    
+                    record = {
+                        'latitude': lat,
+                        'longitude': lon,
+                        'location_name': format_location_name(lat, lon),
+                        'forecast_time': str(time_val),
+                        'data_source': 'ERA5',
+                    }
 
-        for time_idx, time_val in enumerate(ds[time_var_name].values):
-            for lat_idx, lat_val in enumerate(ds['latitude'].values):
-                for lon_idx, lon_val in enumerate(ds['longitude'].values):
-                    try:
-                        lat = float(lat_val)
-                        lon = float(lon_val)
-                        
+                    u_wind = None
+                    v_wind = None
+
+                    # Pobierz wartości dla wszystkich dostępnych zmiennych
+                    for db_col, var_da in var_arrays.items():
                         isel_dict = {time_var_name: time_idx, 'latitude': lat_idx, 'longitude': lon_idx}
-                        isel_dict = {k: v for k, v in isel_dict.items() if k in var.dims}
-                        value = float(var.isel(**isel_dict).values)
+                        isel_dict = {k: v for k, v in isel_dict.items() if k in var_da.dims}
+                        val = float(var_da.isel(**isel_dict).values)
 
                         # Konwersja jednostek
-                        if db_col_name == 'temperature_2m':
-                            if value > 100:  # Z Kelwinów na Celsjusze (ERA5 zwraca w K)
-                                value = value - 273.15
-                        elif db_col_name == 'precipitation_6h':
-                            value = value * 1000.0  # Z metrów na mm (ERA5 zwraca w m)
-                        elif db_col_name == 'cloud_cover_total':
-                            if value <= 1.0:  # Z ułamka (0-1) na procenty (0-100)
-                                value = value * 100.0
+                        if db_col == 'temperature_2m':
+                            if val > 100:  # Z Kelwinów na Celsjusze
+                                val = val - 273.15
+                        elif db_col == 'precipitation_6h':
+                            val = val * 1000.0  # Z metrów na mm
+                        elif db_col == 'cloud_cover_total':
+                            if val <= 1.0:  # Z ułamka na procenty
+                                val = val * 100.0
 
-                        record = {
-                            'latitude': lat,
-                            'longitude': lon,
-                            'location_name': format_location_name(lat, lon),
-                            'forecast_time': str(time_val),
-                            'data_source': 'ERA5',
-                            db_col_name: value,  # Mapuj na odpowiednią kolumnę w bazie
-                        }
-                        records.append(record)
-                    except Exception as e:
-                        logger.warning(f"Błąd przy parsowaniu ({lat}, {lon}): {e}")
-                        continue
+                        record[db_col] = val
+
+                        if db_col == 'u_wind_10m':
+                            u_wind = val
+                        elif db_col == 'v_wind_10m':
+                            v_wind = val
+
+                    # Oblicz prędkość i kierunek wiatru, jeśli mamy obie składowe (U i V)
+                    if u_wind is not None and v_wind is not None:
+                        record['wind_speed_10m'] = calculate_wind_speed(u_wind, v_wind)
+                        record['wind_direction_10m'] = calculate_wind_direction(u_wind, v_wind)
+
+                    records.append(record)
+                except Exception as e:
+                    logger.warning(f"Błąd przy parsowaniu ({lat}, {lon}): {e}")
+                    continue
 
     logger.info(f"✓ Sparsowano {len(records)} rekordów")
     return records
@@ -176,7 +195,7 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         end_year: Rok końcowy (włącznie)
     """
     logger.info("=" * 60)
-    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny")
+    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (All variables)")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -186,7 +205,7 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         logger.error("Nie można się połączyć z Supabase")
         return
 
-    total_records = 0
+    # Pobieramy wszystkie wymagane zmienne w jednym pliku na rok
     variables = [
         '2m_temperature',
         '10m_u_component_of_wind',
@@ -197,32 +216,31 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         'total_cloud_cover'
     ]
 
-    for var in variables:
-        logger.info(f"\n>>> ZMIENNA: {var}")
+    total_records = 0
 
-        for year in range(start_year, end_year + 1):
-            logger.info(f"  ROK {year}")
+    for year in range(start_year, end_year + 1):
+        logger.info(f"\n>>> ROK {year}")
 
-            try:
-                nc_file = fetch_era5_year(year, var)
-                logger.info(f"    Plik pobrany: {nc_file}")
+        try:
+            nc_file = fetch_era5_year(year, variables)
+            logger.info(f"    Plik pobrany: {nc_file}")
 
-                records = parse_era5_to_records(nc_file)
-                logger.info(f"    Sparsowano: {len(records)} rekordów")
+            records = parse_era5_to_records(nc_file)
+            logger.info(f"    Sparsowano: {len(records)} rekordów")
 
-                if not records:
-                    logger.warning(f"    Brak rekordów dla {year}")
-                    continue
-
-                # Wstaw do Supabase
-                inserted, _ = supabase.insert_weather_records(records)
-                total_records += inserted
-
-                logger.info(f"    ✓ Wstawiono {inserted} rekordów (razem: {total_records})")
-
-            except Exception as e:
-                logger.error(f"    ✗ Błąd dla {year}: {e}")
+            if not records:
+                logger.warning(f"    Brak rekordów dla {year}")
                 continue
+
+            # Wstaw / Zaktualizuj w Supabase
+            inserted, _ = supabase.insert_weather_records(records)
+            total_records += inserted
+
+            logger.info(f"    ✓ Wstawiono/zaktualizowano {inserted} rekordów (razem: {total_records})")
+
+        except Exception as e:
+            logger.error(f"    ✗ Błąd dla {year}: {e}")
+            continue
 
     supabase.close()
 
@@ -232,7 +250,6 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
 
 
 if __name__ == '__main__':
-    import sys
     start_year = int(sys.argv[1]) if len(sys.argv) > 1 else 2005
     end_year = int(sys.argv[2]) if len(sys.argv) > 2 else 2025
     bulk_fetch_era5(start_year=start_year, end_year=end_year)
