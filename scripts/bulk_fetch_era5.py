@@ -11,6 +11,9 @@ import os
 import sys
 import logging
 import math
+import zipfile
+import tempfile
+import shutil
 from datetime import datetime
 import cdsapi
 import xarray as xr
@@ -56,12 +59,13 @@ def fetch_era5_month(year: int, month: int, variables: list) -> str:
         variables: Lista zmiennych ERA5 do pobrania
 
     Returns:
-        Ścieżka do pobranego pliku .nc
+        Ścieżka do pobranego pliku
     """
     logger.info(f"Pobieranie ERA5 dla {year}-{month:02d} (zmienne: {variables})...")
 
     client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
-    output_file = f"era5_all_vars_{year}_{month:02d}.nc"
+    # Zapisujemy jako plik pobrany (może to być .nc lub .zip w zależności od tego, jak CDS to spakuje)
+    output_file = f"era5_all_vars_{year}_{month:02d}.download"
 
     request = {
         'product_type': 'reanalysis',
@@ -79,24 +83,61 @@ def fetch_era5_month(year: int, month: int, variables: list) -> str:
     return output_file
 
 
-def parse_era5_to_records(netcdf_file: str) -> list:
+def parse_era5_to_records(download_file: str) -> list:
     """
-    Parsuje plik NetCDF ERA5 do rekordów dla Supabase.
+    Parsuje plik pobrany z ERA5 do rekordów dla Supabase.
+    Automatycznie obsługuje pliki pojedyncze NetCDF oraz spakowane w archiwum ZIP.
     Automatycznie przelicza jednostki, wiatr oraz wilgotność względną.
 
     Args:
-        netcdf_file: Ścieżka do pliku .nc
+        download_file: Ścieżka do pliku pobranego (.nc lub .zip zapisanego jako .download)
 
     Returns:
         Lista słowników z danymi
     """
-    logger.info(f"Parsowanie {netcdf_file}...")
+    logger.info(f"Parsowanie {download_file}...")
+
+    temp_dir = None
+    ds = None
 
     try:
-        ds = xr.open_dataset(netcdf_file, engine='h5netcdf')
+        # Sprawdź czy pobrany plik to ZIP (częste przy zapytaniach wielozmiennych w nowym CDS API)
+        if zipfile.is_zipfile(download_file):
+            logger.info(f"Wykryto plik ZIP. Rozpakowywanie...")
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(download_file, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+            
+            # Znajdź pliki .nc w rozpakowanej zawartości
+            nc_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith('.nc')]
+            if not nc_files:
+                logger.error("Brak plików .nc wewnątrz archiwum ZIP")
+                return []
+            
+            logger.info(f"Znaleziono pliki .nc do scalenia: {os.listdir(temp_dir)}")
+            datasets = []
+            for f in nc_files:
+                try:
+                    datasets.append(xr.open_dataset(f, engine='h5netcdf'))
+                except Exception as e:
+                    logger.warning(f"Błąd przy otwieraniu pliku składowego {f}: {e}")
+            
+            if not datasets:
+                logger.error("Nie udało się załadować żadnego pliku .nc z ZIP")
+                return []
+            
+            # Scalamy zbiory danych w jeden obiekt xarray
+            ds = xr.merge(datasets, compat='override')
+        else:
+            # Standardowy plik NetCDF
+            ds = xr.open_dataset(download_file, engine='h5netcdf')
+
     except Exception as e:
-        logger.error(f"Błąd przy otwieraniu {netcdf_file}: {e}")
+        logger.error(f"Błąd ładowania danych: {e}")
         return []
+    finally:
+        # Pliki tymczasowe zostaną wyczyszczone na końcu funkcji
+        pass
 
     # Słownik mapowania zmiennych NetCDF do kolumn w bazie danych
     ERA5_VAR_MAP = {
@@ -111,7 +152,7 @@ def parse_era5_to_records(netcdf_file: str) -> list:
         'tcc': 'cloud_cover_total',
         'total_cloud_cover': 'cloud_cover_total',
         
-        # Nowe zmienne żądane przez użytkownika
+        # Nowe zmienne
         'sst': 'sea_surface_temperature',
         'sea_surface_temperature': 'sea_surface_temperature',
         'msl': 'pressure_msl',
@@ -129,6 +170,8 @@ def parse_era5_to_records(netcdf_file: str) -> list:
     time_coords = [c for c in ['time', 'valid_time'] if c in ds.coords or c in ds.variables]
     if not time_coords:
         logger.error(f"Brak zmiennej czasowej w pliku. Współrzędne: {list(ds.coords.keys())}")
+        if temp_dir and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
         return []
     time_var_name = time_coords[0]
 
@@ -220,6 +263,14 @@ def parse_era5_to_records(netcdf_file: str) -> list:
                     logger.warning(f"Błąd przy parsowaniu ({lat}, {lon}): {e}")
                     continue
 
+    # Sprzątanie tymczasowych plików .nc rozpakowanych z zipa
+    if temp_dir and os.path.exists(temp_dir):
+        try:
+            shutil.rmtree(temp_dir)
+            logger.info("✓ Wyczyszczono rozpakowane pliki tymczasowe")
+        except Exception as e:
+            logger.warning(f"⚠ Nie udało się usunąć katalogu tymczasowego: {e}")
+
     logger.info(f"✓ Sparsowano {len(records)} rekordów")
     return records
 
@@ -263,12 +314,12 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
         for month in range(1, 13):
             logger.info(f"\n>>> OKRES {year}-{month:02d}")
 
-            nc_file = None
+            download_file = None
             try:
-                nc_file = fetch_era5_month(year, month, variables)
-                logger.info(f"    Plik pobrany: {nc_file}")
+                download_file = fetch_era5_month(year, month, variables)
+                logger.info(f"    Plik pobrany: {download_file}")
 
-                records = parse_era5_to_records(nc_file)
+                records = parse_era5_to_records(download_file)
                 logger.info(f"    Sparsowano: {len(records)} rekordów")
 
                 if not records:
@@ -285,13 +336,13 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
                 logger.error(f"    ✗ Błąd dla {year}-{month:02d}: {e}")
                 continue
             finally:
-                # Usuń plik NetCDF, aby oszczędzać miejsce na dysku
-                if nc_file and os.path.exists(nc_file):
+                # Usuń plik pobrany, aby oszczędzać miejsce na dysku
+                if download_file and os.path.exists(download_file):
                     try:
-                        os.remove(nc_file)
-                        logger.info(f"    ✓ Usunięto plik tymczasowy {nc_file}")
+                        os.remove(download_file)
+                        logger.info(f"    ✓ Usunięto plik pobrany {download_file}")
                     except Exception as e:
-                        logger.warning(f"    ⚠ Nie udało się usunąć pliku {nc_file}: {e}")
+                        logger.warning(f"    ⚠ Nie udało się usunąć pliku {download_file}: {e}")
 
     supabase.close()
 
