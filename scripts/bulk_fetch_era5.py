@@ -64,7 +64,7 @@ def fetch_era5_year(year: int, variable: str = 'temperature_2m') -> str:
 
     request = {
         'product_type': 'reanalysis',
-        'format': 'netcdf',
+        'data_format': 'netcdf',
         'area': ERA5_AREA,
         'year': str(year),
         'month': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'],
@@ -154,12 +154,15 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
 
         try:
             # Pobierz temperaturę
-            grib_temp = fetch_era5_year(year, 'temperature_2m')
-            records_temp = parse_era5_to_records(grib_temp)
+            nc_temp = fetch_era5_year(year, '2m_temperature')
+            logger.info(f"  Plik pobrany: {nc_temp}")
+
+            records_temp = parse_era5_to_records(nc_temp)
+            logger.info(f"  Sparsowano: {len(records_temp)} rekordów")
 
             # TODO: Pobierz wiatr (u, v) i inne zmienne
-            # grib_u = fetch_era5_year(year, 'u_component_of_wind')
-            # records_u = parse_era5_to_records(grib_u)
+            # nc_u = fetch_era5_year(year, 'u_component_of_wind')
+            # records_u = parse_era5_to_records(nc_u)
 
             # Merge records
             records = records_temp  # + records_u + ...
