@@ -265,10 +265,15 @@ async function loadRawData() {
 
         const [year, monthNum] = month.split('-');
         const startDate = `${year}-${monthNum}-01`;
-        const endDate = `${year}-${monthNum}-31`;
 
+        // Ostatni dzień miesiąca (input type="month" zwraca miesiące 1-indexed)
+        const dateObj = new Date(year, parseInt(monthNum), 0);
+        const lastDay = dateObj.getDate();
+        const endDate = `${year}-${monthNum}-${String(lastDay).padStart(2, '0')}`;
+
+        const query = `forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&limit=5000`;
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&limit=5000`,
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?${query}`,
             {
                 headers: {
                     'apikey': API_CONFIG.SUPABASE_KEY,
