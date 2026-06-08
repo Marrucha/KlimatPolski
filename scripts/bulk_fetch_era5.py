@@ -98,6 +98,20 @@ def parse_era5_to_records(netcdf_file: str) -> list:
 
     records = []
 
+    # Słownik mapowania zmiennych NetCDF do kolumn w bazie danych
+    ERA5_VAR_MAP = {
+        't2m': 'temperature_2m',
+        '2m_temperature': 'temperature_2m',
+        'u10': 'u_wind_10m',
+        '10m_u_component_of_wind': 'u_wind_10m',
+        'v10': 'v_wind_10m',
+        '10m_v_component_of_wind': 'v_wind_10m',
+        'tp': 'precipitation_6h',
+        'total_precipitation': 'precipitation_6h',
+        'tcc': 'cloud_cover_total',
+        'total_cloud_cover': 'cloud_cover_total'
+    }
+
     # Znajdź nazwę zmiennej czasowej
     time_coords = [c for c in ['time', 'valid_time'] if c in ds.coords or c in ds.variables]
     if not time_coords:
@@ -107,8 +121,13 @@ def parse_era5_to_records(netcdf_file: str) -> list:
 
     # Iteruj po zmiennych i punktach
     for var_name in ds.data_vars:
+        if var_name not in ERA5_VAR_MAP:
+            logger.info(f"  Pomijam zmienną (brak mapowania kolumny w bazie): {var_name}")
+            continue
+
+        db_col_name = ERA5_VAR_MAP[var_name]
         var = ds[var_name]
-        logger.info(f"  Zmienna: {var_name}, shape: {var.shape}")
+        logger.info(f"  Zmienna: {var_name} -> {db_col_name}, shape: {var.shape}")
 
         for time_idx, time_val in enumerate(ds[time_var_name].values):
             for lat_idx, lat_val in enumerate(ds['latitude'].values):
@@ -121,13 +140,23 @@ def parse_era5_to_records(netcdf_file: str) -> list:
                         isel_dict = {k: v for k, v in isel_dict.items() if k in var.dims}
                         value = float(var.isel(**isel_dict).values)
 
+                        # Konwersja jednostek
+                        if db_col_name == 'temperature_2m':
+                            if value > 100:  # Z Kelwinów na Celsjusze (ERA5 zwraca w K)
+                                value = value - 273.15
+                        elif db_col_name == 'precipitation_6h':
+                            value = value * 1000.0  # Z metrów na mm (ERA5 zwraca w m)
+                        elif db_col_name == 'cloud_cover_total':
+                            if value <= 1.0:  # Z ułamka (0-1) na procenty (0-100)
+                                value = value * 100.0
+
                         record = {
                             'latitude': lat,
                             'longitude': lon,
                             'location_name': format_location_name(lat, lon),
                             'forecast_time': str(time_val),
                             'data_source': 'ERA5',
-                            var_name: value,  # Mapuj zmienną ERA5
+                            db_col_name: value,  # Mapuj na odpowiednią kolumnę w bazie
                         }
                         records.append(record)
                     except Exception as e:

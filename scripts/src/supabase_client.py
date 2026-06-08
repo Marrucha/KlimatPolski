@@ -67,21 +67,24 @@ class SupabaseClient:
             for i in range(0, len(records), batch_size):
                 batch = records[i:i+batch_size]
 
+                headers = self.headers.copy()
+                headers["Prefer"] = "return=representation,resolution=merge-duplicates"
+
                 response = requests.post(
                     f"{self.base_url}/rest/v1/{SUPABASE_TABLE_WEATHER}",
-                    headers=self.headers,
+                    headers=headers,
                     json=batch,
                     timeout=30
                 )
 
                 if response.status_code in [200, 201]:
                     total_inserted += len(batch)
-                    logger.info(f"✓ Wstawiono batch {i//batch_size + 1}: {len(batch)} rekordów")
+                    logger.info(f"✓ Wstawiono/zaktualizowano batch {i//batch_size + 1}: {len(batch)} rekordów")
                 else:
                     logger.error(f"✗ Błąd przy insercie: {response.status_code} - {response.text}")
                     return total_inserted, 0
 
-            logger.info(f"✓ Wstawiono łącznie {total_inserted} rekordów w weather_data")
+            logger.info(f"✓ Wstawiono/zaktualizowano łącznie {total_inserted} rekordów w weather_data")
             return total_inserted, 0
 
         except Exception as e:
@@ -102,9 +105,12 @@ class SupabaseClient:
             return 0
 
         try:
+            headers = self.headers.copy()
+            headers["Prefer"] = "return=representation,resolution=merge-duplicates"
+
             response = requests.post(
                 f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}",
-                headers=self.headers,
+                headers=headers,
                 json=stats,
                 timeout=30
             )
