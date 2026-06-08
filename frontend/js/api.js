@@ -3,9 +3,9 @@
  */
 
 const API_CONFIG = {
-    SUPABASE_URL: import.meta.env?.VITE_SUPABASE_URL || 'https://your-project.supabase.co',
-    SUPABASE_KEY: import.meta.env?.VITE_SUPABASE_ANON_KEY || 'your-anon-key',
-    FIRESTORE_PROJECT_ID: import.meta.env?.VITE_FIREBASE_PROJECT_ID || 'your-project-id'
+    SUPABASE_URL: 'https://mharscyrkgcoanqduqto.supabase.co',
+    SUPABASE_KEY: 'sb_publishable_4huZMlzUuCffXcLPyQf4nQ_lFl25wYD',
+    FIRESTORE_PROJECT_ID: 'your-project-id'
 };
 
 /**
