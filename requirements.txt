@@ -10,6 +10,9 @@ psycopg2-binary==2.9.9    # Adapter PostgreSQL do Pythona
 sqlalchemy==2.0.23        # ORM dla Supabase
 python-dotenv==1.0.0      # Zmienne środowiskowe (.env)
 
+# === ERA5 DATA ===
+cdsapi==0.7.0             # Copernicus CDS API (ERA5)
+
 # === FIRESTORE (opcjonalnie dla cache) ===
 firebase-admin==6.3.0     # SDK Firebase do Firestore
 
