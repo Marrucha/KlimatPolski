@@ -14,12 +14,15 @@ from datetime import datetime
 import cdsapi
 import xarray as xr
 from pathlib import Path
+from dotenv import load_dotenv
 
-sys.path.insert(0, '/app/scripts')
+load_dotenv()
 
-from config import SUPABASE_URL, SUPABASE_KEY, BBOX_NORTH, BBOX_SOUTH, BBOX_EAST, BBOX_WEST
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from config import BBOX_NORTH, BBOX_SOUTH, BBOX_EAST, BBOX_WEST
 from src.supabase_client import SupabaseClient
-from src.utils import calculate_wind_speed, calculate_wind_direction, format_location_name
+from src.utils import format_location_name
 
 logging.basicConfig(level='INFO', format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
