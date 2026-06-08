@@ -32,7 +32,7 @@ jobs:
       - name: Fetch ERA5 data
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
           CDS_UID: ${{ secrets.CDS_UID }}
           CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
         run: |
