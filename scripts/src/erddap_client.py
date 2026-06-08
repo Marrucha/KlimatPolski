@@ -30,6 +30,8 @@ class ERDDAPClient:
         Returns:
             xarray.Dataset ze zmiennymi meteorologicznymi
         """
+        import requests
+
         # Oblicz zakres dat
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(days=days_back)
@@ -39,29 +41,43 @@ class ERDDAPClient:
 
         self.logger.info(f"Pobieranie danych GFS dla okresu {time_str_start} do {time_str_end}")
 
-        # URL do ERDDAP (format OPeNDAP nc)
+        # Pobierz dane jako CSV (prostsze od OPeNDAP)
+        # Format: każda zmienna oddzielnie z .csv
+        variables = {
+            'air_temperature': 'temperature',
+            'eastward_wind': 'u_wind',
+            'northward_wind': 'v_wind',
+            'Total_precipitation': 'precipitation',
+            'Cloud_cover_total': 'cloud_cover'
+        }
+
         url = (
-            f"{self.base_url}/griddap/{self.dataset_id}.nc?"
-            f"air_temperature[({time_str_start}):1:({time_str_end})]"
-            f"[({BBOX_SOUTH}):1:({BBOX_NORTH})]"
-            f"[({BBOX_WEST}):1:({BBOX_EAST})],"
-            f"eastward_wind[({time_str_start}):1:({time_str_end})]"
-            f"[({BBOX_SOUTH}):1:({BBOX_NORTH})]"
-            f"[({BBOX_WEST}):1:({BBOX_EAST})],"
-            f"northward_wind[({time_str_start}):1:({time_str_end})]"
-            f"[({BBOX_SOUTH}):1:({BBOX_NORTH})]"
-            f"[({BBOX_WEST}):1:({BBOX_EAST})],"
-            f"Total_precipitation[({time_str_start}):1:({time_str_end})]"
-            f"[({BBOX_SOUTH}):1:({BBOX_NORTH})]"
-            f"[({BBOX_WEST}):1:({BBOX_EAST})],"
-            f"Cloud_cover_total[({time_str_start}):1:({time_str_end})]"
-            f"[({BBOX_SOUTH}):1:({BBOX_NORTH})]"
-            f"[({BBOX_WEST}):1:({BBOX_EAST})]"
+            f"{self.base_url}/griddap/{self.dataset_id}.csv?"
+            f"time%2Clatitude%2Clongitude%2C"
+            f"air_temperature%2Ceastward_wind%2Cnorthward_wind%2C"
+            f"Total_precipitation%2CCloud_cover_total"
+            f"&time%3E={time_str_start}"
+            f"&time%3C={time_str_end}"
+            f"&latitude%3E={BBOX_SOUTH}"
+            f"&latitude%3C={BBOX_NORTH}"
+            f"&longitude%3E={BBOX_WEST}"
+            f"&longitude%3C={BBOX_EAST}"
         )
 
         try:
-            ds = xr.open_dataset(url)
-            self.logger.info(f"✓ Pobrano dataset: {ds.dims}")
+            # Pobierz jako CSV
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+
+            # Zapisz tymczasowo i otwórz z pandas
+            import pandas as pd
+            from io import StringIO
+
+            df = pd.read_csv(StringIO(response.text))
+            self.logger.info(f"✓ Pobrano {len(df)} wierszy z ERDDAP")
+
+            # Konwertuj do xarray (mock dataset)
+            ds = xr.Dataset.from_dataframe(df.set_index(['time', 'latitude', 'longitude']))
             return ds
         except Exception as e:
             self.logger.error(f"✗ Błąd przy pobieraniu z ERDDAP: {e}")
