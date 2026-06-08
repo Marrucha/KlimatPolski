@@ -26,6 +26,7 @@ class SupabaseClient:
     def connect(self) -> bool:
         """Sprawdza czy Supabase API jest dostępne."""
         try:
+            logger.info(f"DEBUG: URL={self.base_url}, KEY={self.api_key[:20]}...")
             response = requests.get(
                 f"{self.base_url}/rest/v1/",
                 headers=self.headers,
