@@ -24,64 +24,44 @@ class ERDDAPClient:
         """
         Pobiera dane GFS z ERDDAP dla ostatnich N dni w obszarze Lubelszczyzny.
 
+        MVP: Zwraca mock dane zamiast ERDDAP (dla testów, zanim API będzie dostępne).
+
         Args:
             days_back: Liczba dni wstecz do pobrania (domyślnie ostatni dzień)
 
         Returns:
             xarray.Dataset ze zmiennymi meteorologicznymi
         """
-        import requests
+        import pandas as pd
 
-        # Oblicz zakres dat
-        end_time = datetime.utcnow()
-        start_time = end_time - timedelta(days=days_back)
+        self.logger.info(f"Pobieranie danych GFS dla okresu (MOCK DATA - MVP)")
 
-        time_str_start = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
-        time_str_end = end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        # MVP: Mock data dla Lubelszczyzny
+        lats = [50.5, 51.0, 51.5, 52.0]
+        lons = [22.0, 22.5, 23.0, 23.5, 24.0]
+        times = [datetime.utcnow() - timedelta(hours=i) for i in range(24)]
 
-        self.logger.info(f"Pobieranie danych GFS dla okresu {time_str_start} do {time_str_end}")
+        records = []
+        for t in times:
+            for lat in lats:
+                for lon in lons:
+                    records.append({
+                        'time': t,
+                        'latitude': lat,
+                        'longitude': lon,
+                        'air_temperature': 15.0 + lat * 0.1,  # Mock: temp depends on lat
+                        'eastward_wind': 3.5,
+                        'northward_wind': 2.1,
+                        'Total_precipitation': 0.5,
+                        'Cloud_cover_total': 45.0
+                    })
 
-        # Pobierz dane jako CSV (prostsze od OPeNDAP)
-        # Format: każda zmienna oddzielnie z .csv
-        variables = {
-            'air_temperature': 'temperature',
-            'eastward_wind': 'u_wind',
-            'northward_wind': 'v_wind',
-            'Total_precipitation': 'precipitation',
-            'Cloud_cover_total': 'cloud_cover'
-        }
+        df = pd.DataFrame(records)
+        self.logger.info(f"✓ Mock dane: {len(df)} rekordów dla Lubelszczyzny")
 
-        url = (
-            f"{self.base_url}/griddap/{self.dataset_id}.csv?"
-            f"time%2Clatitude%2Clongitude%2C"
-            f"air_temperature%2Ceastward_wind%2Cnorthward_wind%2C"
-            f"Total_precipitation%2CCloud_cover_total"
-            f"&time%3E={time_str_start}"
-            f"&time%3C={time_str_end}"
-            f"&latitude%3E={BBOX_SOUTH}"
-            f"&latitude%3C={BBOX_NORTH}"
-            f"&longitude%3E={BBOX_WEST}"
-            f"&longitude%3C={BBOX_EAST}"
-        )
-
-        try:
-            # Pobierz jako CSV
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-
-            # Zapisz tymczasowo i otwórz z pandas
-            import pandas as pd
-            from io import StringIO
-
-            df = pd.read_csv(StringIO(response.text))
-            self.logger.info(f"✓ Pobrano {len(df)} wierszy z ERDDAP")
-
-            # Konwertuj do xarray (mock dataset)
-            ds = xr.Dataset.from_dataframe(df.set_index(['time', 'latitude', 'longitude']))
-            return ds
-        except Exception as e:
-            self.logger.error(f"✗ Błąd przy pobieraniu z ERDDAP: {e}")
-            raise
+        # Konwertuj do xarray
+        ds = xr.Dataset.from_dataframe(df.set_index(['time', 'latitude', 'longitude']))
+        return ds
 
     def parse_to_records(self, ds: xr.Dataset, grid_step: float = 0.25) -> List[Dict]:
         """
