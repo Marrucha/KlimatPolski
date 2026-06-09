@@ -5,12 +5,20 @@ on:
     inputs:
       start_year:
         description: 'Rok początkowy'
-        required: false
+        required: true
         default: '2005'
+      start_month:
+        description: 'Miesiąc początkowy (1-12)'
+        required: true
+        default: '1'
       end_year:
         description: 'Rok końcowy'
-        required: false
+        required: true
         default: '2025'
+      end_month:
+        description: 'Miesiąc końcowy (1-12)'
+        required: true
+        default: '12'
 
 jobs:
   bulk-fetch:
@@ -36,7 +44,11 @@ jobs:
           CDS_UID: ${{ secrets.CDS_UID }}
           CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
         run: |
-          python scripts/bulk_fetch_era5.py ${{ github.event.inputs.start_year }} ${{ github.event.inputs.end_year }}
+          python scripts/bulk_fetch_era5.py \
+            ${{ github.event.inputs.start_year }} \
+            ${{ github.event.inputs.start_month }} \
+            ${{ github.event.inputs.end_year }} \
+            ${{ github.event.inputs.end_month }}
 
       - name: Upload logs on failure
         if: failure()

@@ -279,16 +279,18 @@ def parse_era5_to_records(download_file: str) -> list:
     return records
 
 
-def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
+def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int = 2025, end_month: int = 12):
     """
-    Pobiera dane ERA5 dla zakresu lat w ujęciu miesięcznym i wstawia do Supabase.
+    Pobiera dane ERA5 dla zakresu lat i miesięcy w ujęciu miesięcznym i wstawia do Supabase.
 
     Args:
         start_year: Rok początkowy
+        start_month: Miesiąc początkowy (1-12)
         end_year: Rok końcowy (włącznie)
+        end_month: Miesiąc końcowy (1-12)
     """
     logger.info("=" * 60)
-    logger.info("START: Bulk fetch ERA5 dla Lubelszczyzny (Rozszerzony)")
+    logger.info(f"START: Bulk fetch ERA5 dla Lubelszczyzny: {start_year}-{start_month:02d} do {end_year}-{end_month:02d}")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -315,7 +317,13 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
     total_records = 0
 
     for year in range(start_year, end_year + 1):
-        for month in range(1, 13):
+        months = range(1, 13)
+        if year == start_year:
+            months = range(start_month, 13)
+        if year == end_year:
+            months = range(1 if year != start_year else start_month, end_month + 1)
+
+        for month in months:
             logger.info(f"\n>>> OKRES {year}-{month:02d}")
 
             download_file = None
@@ -357,5 +365,8 @@ def bulk_fetch_era5(start_year: int = 2005, end_year: int = 2025):
 
 if __name__ == '__main__':
     start_year = int(sys.argv[1]) if len(sys.argv) > 1 else 2005
-    end_year = int(sys.argv[2]) if len(sys.argv) > 2 else 2025
+    start_month = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    end_year = int(sys.argv[3]) if len(sys.argv) > 3 else 2025
+    end_month = int(sys.argv[4]) if len(sys.argv) > 4 else 12
+    bulk_fetch_era5(start_year=start_year, start_month=start_month, end_year=end_year, end_month=end_month)
     bulk_fetch_era5(start_year=start_year, end_year=end_year)
