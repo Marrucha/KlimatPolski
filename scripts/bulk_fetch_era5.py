@@ -315,7 +315,7 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         city_name = city['name']
         lat = city['latitude']
         lon = city['longitude']
-        bbox = make_bbox(lat, lon)
+        bbox = make_bbox(lat, lon, margin=0.125)  # 0.25° grid, use 0.125 (half cell)
         logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
 
         for year in range(start_year, end_year + 1):
