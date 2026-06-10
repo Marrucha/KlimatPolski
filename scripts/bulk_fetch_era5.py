@@ -37,8 +37,8 @@ CDS_API_KEY = os.getenv('CDS_API_KEY', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_URL = 'https://cds.climate.copernicus.eu/api'
 
 def make_bbox(lat: float, lon: float, margin: float = 0.01) -> list:
-    """Generuje bbox wokół punktu siatki ERA5."""
-    return [lat + margin, lon + margin, lat - margin, lon - margin]
+    """Generuje bbox wokół punktu siatki ERA5: [North, West, South, East]."""
+    return [lat + margin, lon - margin, lat - margin, lon + margin]
 
 
 def setup_cds_credentials():
