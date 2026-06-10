@@ -39,6 +39,43 @@ CDS_URL = 'https://cds.climate.copernicus.eu/api'
 # ERA5 Bounding box (Lubelszczyzny)
 ERA5_AREA = [BBOX_NORTH, BBOX_WEST, BBOX_SOUTH, BBOX_EAST]
 
+# Słownik miast zaokrąglony do siatki ERA5 (0.25°)
+# Musi być zsynchronizowany z tabelą cities w Supabase
+CITIES = {
+    # Lubelszczyzna
+    (51.50, 23.50): 1,    # Włodawa
+    (51.25, 22.50): 2,    # Lublin
+    (51.75, 23.25): 3,    # Biała Podlaska
+    (50.75, 23.25): 4,    # Zamość
+    (51.25, 23.50): 5,    # Chełm
+    (50.75, 21.75): 6,    # Sandomierz
+    # Cała Polska
+    (52.25, 21.00): 7,    # Warszawa
+    (50.00, 19.95): 8,    # Kraków
+    (51.00, 17.00): 9,    # Wrocław
+    (51.75, 19.50): 10,   # Łódź
+    (54.00, 23.00): 11,   # Suwałki
+    (54.50, 18.50): 12,   # Gdańsk
+    (53.50, 14.50): 13,   # Szczecin
+    (50.00, 22.00): 14,   # Rzeszów
+    (53.75, 20.50): 15,   # Olsztyn
+    (50.75, 21.25): 16,   # Kielce
+    (49.25, 20.00): 17,   # Zakopane
+    (50.75, 15.75): 18,   # Karpacz
+    (54.25, 15.50): 19,   # Kołobrzeg
+    (54.50, 18.50): 20,   # Środek zatoki Gdańskiej
+    (54.00, 14.25): 21,   # Świnoujście
+    (55.00, 18.75): 22,   # Władysławowa
+    (55.25, 18.75): 23,   # 20km na północ od Władysławowa
+}
+
+def get_city_id(lat: float, lon: float) -> int:
+    """Znajdź city_id na podstawie współrzędnych."""
+    for (city_lat, city_lon), city_id in CITIES.items():
+        if abs(lat - city_lat) < 0.01 and abs(lon - city_lon) < 0.01:
+            return city_id
+    return None
+
 
 def setup_cds_credentials():
     """Ustawia credentials do CDS API."""
@@ -201,10 +238,13 @@ def parse_era5_to_records(download_file: str, allowed_points: list = None) -> li
                         if not any(abs(lat - p[0]) < 0.01 and abs(lon - p[1]) < 0.01 for p in allowed_points):
                             continue
 
+                    # Znajdź city_id
+                    city_id = get_city_id(lat, lon)
+                    if city_id is None:
+                        continue
+
                     record = {
-                        'latitude': lat,
-                        'longitude': lon,
-                        'location_name': format_location_name(lat, lon),
+                        'city_id': city_id,
                         'forecast_time': str(time_val),
                         'data_source': 'ERA5',
                     }
