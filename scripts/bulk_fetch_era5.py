@@ -248,6 +248,9 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
 
     if temp_dir and os.path.exists(temp_dir):
         try:
+            # Zamknij xarray dataset zanim usuniesz plik
+            if ds is not None:
+                ds.close()
             shutil.rmtree(temp_dir)
             logger.info("✓ Wyczyszczono rozpakowane pliki tymczasowe")
         except Exception as e:
