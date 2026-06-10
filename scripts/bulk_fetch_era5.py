@@ -83,7 +83,7 @@ def fetch_era5_month(year: int, month: int, variables: list) -> str:
     return output_file
 
 
-def parse_era5_to_records(download_file: str) -> list:
+def parse_era5_to_records(download_file: str, allowed_points: list = None) -> list:
     """
     Parsuje plik pobrany z ERA5 do rekordów dla Supabase.
     Automatycznie obsługuje pliki pojedyncze NetCDF oraz spakowane w archiwum ZIP.
@@ -195,7 +195,12 @@ def parse_era5_to_records(download_file: str) -> list:
                 try:
                     lat = float(lat_val)
                     lon = float(lon_val)
-                    
+
+                    # Filtruj tylko allowed points jeśli podane
+                    if allowed_points:
+                        if not any(abs(lat - p[0]) < 0.01 and abs(lon - p[1]) < 0.01 for p in allowed_points):
+                            continue
+
                     record = {
                         'latitude': lat,
                         'longitude': lon,
@@ -314,6 +319,16 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         '2m_dewpoint_temperature'
     ]
 
+    # Tylko 6 miast Lubelszczyzny
+    allowed_points = [
+        (51.55, 23.57),  # Włodawa
+        (51.25, 22.57),  # Lublin
+        (51.75, 23.15),  # Biała Podlaska
+        (50.72, 23.25),  # Zamość
+        (51.18, 23.48),  # Chełm
+        (50.68, 21.75),  # Sandomierz
+    ]
+
     total_records = 0
 
     for year in range(start_year, end_year + 1):
@@ -331,8 +346,8 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
                 download_file = fetch_era5_month(year, month, variables)
                 logger.info(f"    Plik pobrany: {download_file}")
 
-                records = parse_era5_to_records(download_file)
-                logger.info(f"    Sparsowano: {len(records)} rekordów")
+                records = parse_era5_to_records(download_file, allowed_points=allowed_points)
+                logger.info(f"    Sparsowano: {len(records)} rekordów (6 miast)")
 
                 if not records:
                     logger.warning(f"    Brak rekordów dla {year}-{month:02d}")
