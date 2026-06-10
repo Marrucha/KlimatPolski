@@ -36,9 +36,6 @@ CDS_UID = os.getenv('CDS_UID', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_API_KEY = os.getenv('CDS_API_KEY', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_URL = 'https://cds.climate.copernicus.eu/api'
 
-def make_bbox(lat: float, lon: float, margin: float = 0.01) -> list:
-    """Generuje bbox wokół punktu siatki ERA5: [North, West, South, East]."""
-    return [lat + margin, lon - margin, lat - margin, lon + margin]
 
 
 def setup_cds_credentials():
@@ -315,7 +312,7 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         city_name = city['name']
         lat = city['latitude']
         lon = city['longitude']
-        bbox = make_bbox(lat, lon, margin=0.125)  # 0.25° grid, use 0.125 (half cell)
+        bbox = [lat, lon, lat, lon]  # Dokładnie punkt siatki
         logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
 
         for year in range(start_year, end_year + 1):
