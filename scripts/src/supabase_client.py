@@ -46,6 +46,33 @@ class SupabaseClient:
         """Noop - REST API nie wymaga zamykania."""
         logger.info("REST API (brak połączenia do zamknięcia)")
 
+    def get_records(self, table: str, query: str = "") -> list:
+        """
+        Pobiera rekordy z tabeli.
+
+        Args:
+            table: Nazwa tabeli
+            query: Query string (np. 'id=eq.1&name=eq.test')
+
+        Returns:
+            Lista rekordów (słowników)
+        """
+        try:
+            url = f"{self.base_url}/rest/v1/{table}"
+            if query:
+                url += f"?{query}"
+
+            response = requests.get(url, headers=self.headers, timeout=30)
+
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"✗ Błąd przy pobieraniu z {table}: {response.status_code}")
+                return []
+        except Exception as e:
+            logger.error(f"✗ Błąd przy pobieraniu z {table}: {e}")
+            return []
+
     def insert_weather_records(self, records: List[Dict]) -> tuple:
         """
         Wstawia rekordy pogodowe przez REST API.

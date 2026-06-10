@@ -36,33 +36,9 @@ CDS_UID = os.getenv('CDS_UID', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_API_KEY = os.getenv('CDS_API_KEY', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_URL = 'https://cds.climate.copernicus.eu/api'
 
-# Miasta z mini-bbox dla osobnych zapytań ERA5
-# (city_name, city_id, [north, west, south, east])
-CITIES_REQUESTS = [
-    ('Włodawa', 1, [51.56, 23.56, 51.54, 23.58]),
-    ('Lublin', 2, [51.26, 22.56, 51.24, 22.58]),
-    ('Biała Podlaska', 3, [51.76, 23.14, 51.74, 23.16]),
-    ('Zamość', 4, [50.73, 23.24, 50.71, 23.26]),
-    ('Chełm', 5, [51.19, 23.47, 51.17, 23.49]),
-    ('Sandomierz', 6, [50.69, 21.74, 50.67, 21.76]),
-    ('Warszawa', 7, [52.26, 21.00, 52.24, 21.02]),
-    ('Kraków', 8, [50.06, 19.94, 50.04, 19.96]),
-    ('Wrocław', 9, [51.11, 16.99, 51.09, 17.01]),
-    ('Łódź', 10, [51.76, 19.49, 51.74, 19.51]),
-    ('Suwałki', 11, [54.11, 22.94, 54.09, 22.96]),
-    ('Gdańsk', 12, [54.26, 18.74, 54.24, 18.76]),
-    ('Szczecin', 13, [53.51, 14.49, 53.49, 14.51]),
-    ('Rzeszów', 14, [50.04, 21.99, 50.02, 22.01]),
-    ('Olsztyn', 15, [53.78, 20.49, 53.76, 20.51]),
-    ('Kielce', 16, [50.76, 21.24, 50.74, 21.26]),
-    ('Zakopane', 17, [49.30, 19.99, 49.28, 20.01]),
-    ('Karpacz', 18, [50.74, 15.74, 50.72, 15.76]),
-    ('Kołobrzeg', 19, [54.26, 15.49, 54.24, 15.51]),
-    ('Środek zatoki Gdańskiej', 20, [54.51, 18.49, 54.49, 18.51]),
-    ('Świnoujście', 21, [54.01, 14.24, 53.99, 14.26]),
-    ('Władysławowa', 22, [54.81, 18.74, 54.79, 18.76]),
-    ('20km na północ od Władysławowa', 23, [55.01, 18.74, 54.99, 18.76]),
-]
+def make_bbox(lat: float, lon: float, margin: float = 0.01) -> list:
+    """Generuje bbox wokół punktu siatki ERA5."""
+    return [lat + margin, lon + margin, lat - margin, lon - margin]
 
 
 def setup_cds_credentials():
@@ -284,9 +260,17 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
     return records
 
 
+def get_cities_from_db(supabase) -> list:
+    """Pobiera miasta z tabeli cities w Supabase."""
+    cities = supabase.get_records('cities', 'select=id,name,latitude,longitude')
+    if cities:
+        logger.info(f"✓ Pobrano {len(cities)} miast z bazy")
+    return cities
+
+
 def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int = 2025, end_month: int = 12):
     """
-    Pobiera dane ERA5 dla 23 miast Polski w ujęciu miesięcznym.
+    Pobiera dane ERA5 dla miast z tabeli cities w Supabase, w ujęciu miesięcznym.
 
     Args:
         start_year: Rok początkowy
@@ -295,7 +279,7 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         end_month: Miesiąc końcowy (1-12)
     """
     logger.info("=" * 60)
-    logger.info(f"START: Bulk fetch ERA5 dla 23 miast Polski: {start_year}-{start_month:02d} do {end_year}-{end_month:02d}")
+    logger.info(f"START: Bulk fetch ERA5: {start_year}-{start_month:02d} do {end_year}-{end_month:02d}")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -303,6 +287,12 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
     supabase = SupabaseClient()
     if not supabase.connect():
         logger.error("Nie można się połączyć z Supabase")
+        return
+
+    # Pobierz miasta z bazy
+    cities = get_cities_from_db(supabase)
+    if not cities:
+        logger.error("Brak miast w bazie")
         return
 
     variables = [
@@ -320,7 +310,12 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
 
     total_records = 0
 
-    for city_name, city_id, bbox in CITIES_REQUESTS:
+    for city in cities:
+        city_id = city['id']
+        city_name = city['name']
+        lat = city['latitude']
+        lon = city['longitude']
+        bbox = make_bbox(lat, lon)
         logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
 
         for year in range(start_year, end_year + 1):
