@@ -233,15 +233,19 @@ def parse_era5_to_records(download_file: str, allowed_points: list = None) -> li
                     lat = float(lat_val)
                     lon = float(lon_val)
 
+                    # DEBUG: Log first point
+                    if time_idx == 0 and lat_idx == 0 and lon_idx == 0:
+                        logger.info(f"DEBUG: First grid point: lat={lat}, lon={lon}")
+
                     # Filtruj tylko allowed points jeśli podane
                     if allowed_points:
-                        if not any(abs(lat - p[0]) < 0.01 and abs(lon - p[1]) < 0.01 for p in allowed_points):
+                        city_id = get_city_id(lat, lon)
+                        if city_id is None:
+                            if time_idx == 0 and lat_idx == 0 and lon_idx == 0:
+                                logger.info(f"DEBUG: No city found for ({lat}, {lon})")
                             continue
-
-                    # Znajdź city_id
-                    city_id = get_city_id(lat, lon)
-                    if city_id is None:
-                        continue
+                    else:
+                        city_id = None
 
                     record = {
                         'city_id': city_id,
