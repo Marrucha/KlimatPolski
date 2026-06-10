@@ -262,9 +262,13 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
 
 def get_cities_from_db(supabase) -> list:
     """Pobiera miasta z tabeli cities w Supabase."""
-    cities = supabase.get_records('cities', 'select=id,name,latitude,longitude')
+    cities = supabase.get_records('cities')
     if cities:
         logger.info(f"✓ Pobrano {len(cities)} miast z bazy")
+        # Upewnij się że mamy prawidłowe kolumny
+        for city in cities:
+            if 'latitude' not in city or 'longitude' not in city:
+                logger.error(f"BRAK latitude/longitude w mieście {city.get('name')}!")
     return cities
 
 
@@ -315,6 +319,7 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         city_name = city['name']
         lat = city['latitude']
         lon = city['longitude']
+        logger.info(f"DEBUG: city keys={list(city.keys())}, lat={lat}, lon={lon}")
         bbox = [lat, lon, lat, lon]  # Dokładnie punkt siatki
         logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
 
