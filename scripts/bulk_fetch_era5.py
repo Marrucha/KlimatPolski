@@ -63,7 +63,7 @@ def fetch_era5_month(year: int, month: int, variables: list, bbox: list, city_na
     """
     logger.info(f"Pobieranie ERA5 dla {city_name} {year}-{month:02d} (zmienne: {variables})...")
 
-    client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
+    client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY, timeout=600, quiet=False)
     output_file = f"era5_{city_name}_{year}_{month:02d}.download"
 
     request = {
@@ -77,7 +77,7 @@ def fetch_era5_month(year: int, month: int, variables: list, bbox: list, city_na
         'variable': variables,
     }
 
-    client.retrieve('reanalysis-era5-single-levels', request, output_file)
+    client.retrieve('reanalysis-era5-single-levels', request, output_file, request_max_size=50000)
     logger.info(f"✓ Pobrano {output_file}")
     return output_file
 
