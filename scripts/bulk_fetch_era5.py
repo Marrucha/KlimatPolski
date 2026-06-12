@@ -299,10 +299,10 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
     return total
 
 
-def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 1):
+def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 1, max_workers: int = 2):
     """Pobiera dane ERA5 dla miast równolegle, rok po roku."""
     logger.info("=" * 60)
-    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} rok)")
+    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} rok, workers: {max_workers})")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -334,7 +334,7 @@ def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: in
 
     total_records = 0
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(fetch_city_data, city, start_year, end_year, chunk_size, variables): city
             for city in cities
@@ -359,12 +359,14 @@ if __name__ == '__main__':
     parser.add_argument('--start-year', type=int, default=1950, help='Start year')
     parser.add_argument('--end-year', type=int, default=2026, help='End year')
     parser.add_argument('--chunk-size', type=int, default=1, help='Chunk size in years')
+    parser.add_argument('--workers', '-w', type=int, default=2, help='Number of parallel workers (default: 2)')
 
     args = parser.parse_args()
 
     start_year = args.start_year
     end_year = args.end_year
     chunk_size = args.chunk_size
+    workers = args.workers
     city_id_filter = args.city_id if args.city_id != 'all' else None
 
     if city_id_filter:
@@ -395,4 +397,4 @@ if __name__ == '__main__':
         else:
             logger.error("Nie można się połączyć z Supabase")
     else:
-        bulk_fetch_era5(start_year=start_year, end_year=end_year, chunk_size=chunk_size)
+        bulk_fetch_era5(start_year=start_year, end_year=end_year, chunk_size=chunk_size, max_workers=workers)
