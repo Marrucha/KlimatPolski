@@ -55,6 +55,8 @@ def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list
     months = [f"{m:02d}" for m in range(1, 13)]
     days = [f"{d:02d}" for d in range(1, 32)]
 
+    hours = [f'{h:02d}:00' for h in range(24)]
+
     request = {
         'product_type': 'reanalysis',
         'data_format': 'netcdf',
@@ -62,7 +64,7 @@ def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list
         'year': years,
         'month': months,
         'day': days,
-        'time': ['00:00', '06:00', '12:00', '18:00'],
+        'time': hours,
         'variable': variables,
     }
 
