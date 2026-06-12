@@ -296,10 +296,10 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
     return total
 
 
-def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 2):
-    """Pobiera dane ERA5 dla miast równolegle, chunk po chunk."""
+def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 1):
+    """Pobiera dane ERA5 dla miast równolegle, rok po roku."""
     logger.info("=" * 60)
-    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} lat)")
+    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} rok)")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -355,7 +355,7 @@ if __name__ == '__main__':
     parser.add_argument('--city-id', default='all', help='City ID to fetch (or "all")')
     parser.add_argument('--start-year', type=int, default=1950, help='Start year')
     parser.add_argument('--end-year', type=int, default=2026, help='End year')
-    parser.add_argument('--chunk-size', type=int, default=2, help='Chunk size in years')
+    parser.add_argument('--chunk-size', type=int, default=1, help='Chunk size in years')
 
     args = parser.parse_args()
 

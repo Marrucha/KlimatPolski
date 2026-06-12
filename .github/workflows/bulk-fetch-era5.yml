@@ -62,7 +62,7 @@ jobs:
             echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
           fi
 
-      - name: Fetch ERA5 data (2-year chunks)
+      - name: Fetch ERA5 data (yearly chunks)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
@@ -73,7 +73,7 @@ jobs:
             --city-id "${{ steps.extract.outputs.city_id }}" \
             --start-year 1950 \
             --end-year 2026 \
-            --chunk-size 2
+            --chunk-size 1
 
       - name: Upload logs on failure
         if: failure()
