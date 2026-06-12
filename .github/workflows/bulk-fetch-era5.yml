@@ -6,10 +6,9 @@ on:
       city:
         description: 'Wybierz miasto'
         required: true
-        default: 'all'
+        default: 'Warszawa (37)'
         type: choice
         options:
-          - all
           - Warszawa (37)
           - Kraków (38)
           - Włodawa (1)
@@ -55,12 +54,8 @@ jobs:
         id: extract
         run: |
           CITY_INPUT="${{ github.event.inputs.city }}"
-          if [[ "$CITY_INPUT" == "all" ]]; then
-            echo "city_id=all" >> $GITHUB_OUTPUT
-          else
-            CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
-            echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
-          fi
+          CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
+          echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
 
       - name: Fetch ERA5 data (yearly chunks)
         env:
