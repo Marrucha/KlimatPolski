@@ -383,8 +383,47 @@ def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int 
 
 
 if __name__ == '__main__':
-    start_year = int(sys.argv[1]) if len(sys.argv) > 1 else 2005
-    start_month = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    end_year = int(sys.argv[3]) if len(sys.argv) > 3 else 2025
-    end_month = int(sys.argv[4]) if len(sys.argv) > 4 else 12
-    bulk_fetch_era5(start_year=start_year, start_month=start_month, end_year=end_year, end_month=end_month)
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Bulk fetch ERA5 data')
+    parser.add_argument('--city-id', default='all', help='City ID to fetch (or "all")')
+    parser.add_argument('--start-year', type=int, default=1950, help='Start year')
+    parser.add_argument('--end-year', type=int, default=2026, help='End year')
+
+    args = parser.parse_args()
+
+    start_year = args.start_year
+    end_year = args.end_year
+    city_id_filter = args.city_id if args.city_id != 'all' else None
+
+    # Jeśli podano city_id, pobierz tylko to miasto
+    if city_id_filter:
+        setup_cds_credentials()
+        supabase = SupabaseClient()
+        if supabase.connect():
+            cities = get_cities_from_db(supabase)
+            supabase.close()
+
+            city = next((c for c in cities if c['id'] == int(city_id_filter)), None)
+            if city:
+                variables = [
+                    '2m_temperature',
+                    '10m_u_component_of_wind',
+                    '10m_v_component_of_wind',
+                    'total_precipitation',
+                    'mean_sea_level_pressure',
+                    '10m_wind_gust_since_previous_post_processing',
+                    'total_cloud_cover',
+                    'sea_surface_temperature',
+                    'snowfall',
+                    '2m_dewpoint_temperature'
+                ]
+                total = fetch_city_data(city, start_year, end_year, variables)
+                logger.info(f"\n✓ Pobrano dla {city['name']}: {total} rekordów")
+            else:
+                logger.error(f"Miasto o ID {city_id_filter} nie znalezione")
+        else:
+            logger.error("Nie można się połączyć z Supabase")
+    else:
+        # Pobierz wszystkie miasta
+        bulk_fetch_era5(start_year=start_year, end_year=end_year)

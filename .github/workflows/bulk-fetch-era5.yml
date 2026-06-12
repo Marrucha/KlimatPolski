@@ -3,22 +3,36 @@ name: Bulk Fetch ERA5 (50 lat)
 on:
   workflow_dispatch:
     inputs:
-      start_year:
-        description: 'Rok początkowy'
+      city:
+        description: 'Wybierz miasto'
         required: true
-        default: '2005'
-      start_month:
-        description: 'Miesiąc początkowy (1-12)'
-        required: true
-        default: '1'
-      end_year:
-        description: 'Rok końcowy'
-        required: true
-        default: '2025'
-      end_month:
-        description: 'Miesiąc końcowy (1-12)'
-        required: true
-        default: '12'
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - Warszawa (37)
+          - Kraków (38)
+          - Włodawa (1)
+          - Lublin (2)
+          - Wrocław (39)
+          - Zamość (4)
+          - Chełm (5)
+          - Sandomierz (6)
+          - Biała Podlaska (3)
+          - Łódź (40)
+          - Suwałki (41)
+          - Gdańsk (42)
+          - Szczecin (43)
+          - Rzeszów (44)
+          - Olsztyn (45)
+          - Kielce (46)
+          - Zakopane (47)
+          - Karpacz (48)
+          - Kołobrzeg (49)
+          - Środek zatoki Gdańskiej (50)
+          - Świnoujście (51)
+          - Władysławowa (52)
+          - 20km na północ od Władysławowa (53)
 
 jobs:
   bulk-fetch:
@@ -37,6 +51,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Extract city ID
+        id: extract_city
+        run: |
+          CITY_INPUT="${{ github.event.inputs.city }}"
+          if [[ "$CITY_INPUT" == "all" ]]; then
+            echo "city_id=all" >> $GITHUB_OUTPUT
+          else
+            CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
+            echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
+          fi
+
       - name: Fetch ERA5 data
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -45,10 +70,9 @@ jobs:
           CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
         run: |
           python scripts/bulk_fetch_era5.py \
-            ${{ github.event.inputs.start_year }} \
-            ${{ github.event.inputs.start_month }} \
-            ${{ github.event.inputs.end_year }} \
-            ${{ github.event.inputs.end_month }}
+            --city-id "${{ steps.extract_city.outputs.city_id }}" \
+            --start-year 1950 \
+            --end-year 2026
 
       - name: Upload logs on failure
         if: failure()
