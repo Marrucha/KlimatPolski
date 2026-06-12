@@ -253,8 +253,8 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
     city_name = city['name']
     lat = city['latitude']
     lon = city['longitude']
-    # CDS wymaga regionu [north, west, south, east], nie punktu
-    bbox = [lat + 0.05, lon - 0.05, lat - 0.05, lon + 0.05]
+    # CDS wymaga regionu [north, west, south, east] z min 0.25° range
+    bbox = [lat + 0.125, lon - 0.125, lat - 0.125, lon + 0.125]
 
     supabase = SupabaseClient()
     if not supabase.connect():
