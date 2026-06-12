@@ -1,4 +1,4 @@
-name: Bulk Fetch ERA5 - Instancja 1
+name: Bulk Fetch ERA5 - Instancja 3
 
 on:
   workflow_dispatch:
@@ -92,6 +92,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: fetch-logs
+          name: fetch-logs-3
           path: logs/
           retention-days: 7
