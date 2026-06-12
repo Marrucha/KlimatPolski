@@ -1,12 +1,24 @@
+-- Tabela: słownik miast (lookup table)
+CREATE TABLE IF NOT EXISTS cities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    latitude DECIMAL(10, 6) NOT NULL,
+    longitude DECIMAL(10, 6) NOT NULL,
+    latitude_real DECIMAL(10, 6),
+    longitude_real DECIMAL(10, 6),
+    distance_km DECIMAL(8, 2),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cities_name ON cities(name);
+
 -- Tabela główna: dane pogodowe dla Lubelszczyzny
 -- Schemat zapisuje surowe dane z NOAA GFS w regularnych przedziałach czasowych
 CREATE TABLE IF NOT EXISTS weather_data (
     id BIGSERIAL PRIMARY KEY,
 
     -- Metadane lokalizacji
-    latitude DECIMAL(10, 6) NOT NULL,
-    longitude DECIMAL(10, 6) NOT NULL,
-    location_name VARCHAR(255),
+    city_id INTEGER NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
 
     -- Metadane czasowe
     forecast_time TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -32,15 +44,13 @@ CREATE TABLE IF NOT EXISTS weather_data (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
     -- Indeksy dla szybkich zapytań
-    UNIQUE(latitude, longitude, forecast_time)
+    UNIQUE(city_id, forecast_time)
 );
 
--- Indeks geoprzestrzenni (wymaga rozszerzenia PostGIS - opcjonalne)
--- CREATE INDEX idx_weather_location ON weather_data USING GIST(ll_to_earth(latitude, longitude));
-
 -- Indeks czasowy dla szybkich zapytań po dacie
-CREATE INDEX idx_weather_time ON weather_data(forecast_time DESC);
-CREATE INDEX idx_weather_location ON weather_data(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_weather_time ON weather_data(forecast_time DESC);
+CREATE INDEX IF NOT EXISTS idx_weather_city_id ON weather_data(city_id);
+CREATE INDEX IF NOT EXISTS idx_weather_city_time ON weather_data(city_id, forecast_time DESC);
 
 -- Tabela: cache statystyk dziennych (dla Firestore)
 -- Przechowuje już wyliczone agregaty, aby oszczędzać zapytania do Supabase
@@ -49,9 +59,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 
     -- Data i lokalizacja
     date DATE NOT NULL,
-    latitude DECIMAL(10, 6) NOT NULL,
-    longitude DECIMAL(10, 6) NOT NULL,
-    location_name VARCHAR(255),
+    city_id INTEGER NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
 
     -- Statystyki temperatury
     temp_min DECIMAL(5, 2),
@@ -73,11 +81,12 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE(date, latitude, longitude)
+    UNIQUE(date, city_id)
 );
 
-CREATE INDEX idx_daily_stats_date ON daily_stats(date DESC);
-CREATE INDEX idx_daily_stats_location ON daily_stats(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_city_id ON daily_stats(city_id);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_city_date ON daily_stats(city_id, date DESC);
 
 -- Tabela: logi przebiegu synchronizacji
 CREATE TABLE IF NOT EXISTS sync_logs (
@@ -96,23 +105,26 @@ CREATE TABLE IF NOT EXISTS sync_logs (
 );
 
 -- Umożliwienie RLS (Row Level Security) dla publik dostępu
+-- cities: brak RLS (publiczny dostęp do odczytu i zapisu)
+ALTER TABLE cities DISABLE ROW LEVEL SECURITY;
+
 ALTER TABLE weather_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_stats ENABLE ROW LEVEL SECURITY;
 
 -- Policy: publiczny dostęp do odczytu (bez uwierzytelnienia)
-CREATE POLICY "public_read_weather_data" ON weather_data
+CREATE POLICY IF NOT EXISTS "public_read_weather_data" ON weather_data
     FOR SELECT
     USING (true);
 
-CREATE POLICY "public_read_daily_stats" ON daily_stats
+CREATE POLICY IF NOT EXISTS "public_read_daily_stats" ON daily_stats
     FOR SELECT
     USING (true);
 
 -- Policy: wstawienie i aktualizacja tylko dla backend (wymagają API key)
-CREATE POLICY "backend_write_weather_data" ON weather_data
+CREATE POLICY IF NOT EXISTS "backend_write_weather_data" ON weather_data
     FOR INSERT
     WITH CHECK (true);
 
-CREATE POLICY "backend_write_daily_stats" ON daily_stats
+CREATE POLICY IF NOT EXISTS "backend_write_daily_stats" ON daily_stats
     FOR INSERT
     WITH CHECK (true);

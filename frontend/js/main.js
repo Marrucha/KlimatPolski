@@ -21,43 +21,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Załaduj listę dostępnych lokalizacji
+ * Załaduj listę dostępnych miast
  */
 async function loadLocations() {
     try {
         showLoading(true);
 
-        const locations = await getAvailableLocations();
+        const cities = await getAvailableLocations();
         const select = document.getElementById('location-select');
 
-        // Wyczyść opcje
-        select.innerHTML = '<option value="">-- Załaduj dostępne lokalizacje --</option>';
+        select.innerHTML = '<option value="">-- Wybierz lokalizację --</option>';
 
-        if (locations.length === 0) {
+        if (cities.length === 0) {
             showError('Brak dostępnych lokalizacji. Upewnij się, że dane są w bazie Supabase.');
             return;
         }
 
-        // Dodaj opcje
-        const uniqueLocations = [];
-        const seenKeys = new Set();
-
-        locations.forEach(loc => {
-            const key = `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
-            if (!seenKeys.has(key)) {
-                uniqueLocations.push(loc);
-                seenKeys.add(key);
-            }
-        });
-
-        uniqueLocations.forEach(loc => {
+        cities.forEach(city => {
             const option = document.createElement('option');
-            option.value = JSON.stringify({ lat: loc.latitude, lon: loc.longitude });
-            option.textContent = loc.location_name || `${loc.latitude.toFixed(2)}°N, ${loc.longitude.toFixed(2)}°E`;
+            option.value = JSON.stringify({ city_id: city.id, name: city.name });
+            option.textContent = city.name;
             select.appendChild(option);
         });
 
-        console.log(`✓ Załadowano ${uniqueLocations.length} lokalizacji`);
+        console.log(`✓ Załadowano ${cities.length} miast`);
     } catch (error) {
         showError(`Błąd przy ładowaniu lokalizacji: ${error.message}`);
     } finally {
@@ -66,14 +53,13 @@ async function loadLocations() {
 }
 
 /**
- * Załaduj dane pogodowe dla wybranej lokalizacji
+ * Załaduj dane pogodowe dla wybranego miasta
  */
 async function loadWeatherData() {
     try {
         const locationJson = document.getElementById('location-select').value;
         const dateStr = document.getElementById('date-picker').value;
 
-        // Walidacja
         if (!locationJson) {
             showError('Wybierz lokalizację');
             return;
@@ -89,23 +75,22 @@ async function loadWeatherData() {
         const location = JSON.parse(locationJson);
         currentLocation = location;
 
-        // Pobierz dane surowe (24h)
         const endDate = new Date(dateStr);
         const startDate = new Date(endDate);
         startDate.setDate(startDate.getDate() - 1);
 
         const weatherRecords = await getWeatherData(
-            location.lat,
-            location.lon,
+            location.city_id,
             formatDate(startDate),
             formatDate(endDate)
         );
 
-        // Pobierz statystyki dzienne
-        const dailyStats = await getDailyStats(location.lat, location.lon, dateStr);
+        const dailyStats = await getDailyStats(location.city_id, dateStr);
 
-        // Przetwórz dane
         processAndDisplayData(weatherRecords, dailyStats);
+
+        // Wyświetl mapę ze wszystkimi miastami
+        await displayMapWithCities(dateStr);
 
         console.log(`✓ Załadowano ${weatherRecords.length} rekordów`);
     } catch (error) {
@@ -249,25 +234,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // === INICJALIZACJA LOKALIZACJI ===
 async function initializeLocationSelects() {
-    const locations = await getAvailableLocations();
-    const uniqueLocations = [];
-    const seenKeys = new Set();
-
-    locations.forEach(loc => {
-        const key = `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
-        if (!seenKeys.has(key)) {
-            uniqueLocations.push(loc);
-            seenKeys.add(key);
-        }
-    });
+    const cities = await getAvailableLocations();
 
     [document.getElementById('raw-location-select'), document.getElementById('daily-location-select')].forEach(select => {
         if (select) {
             select.innerHTML = '<option value="">-- Wybierz --</option>';
-            uniqueLocations.forEach(loc => {
+            cities.forEach(city => {
                 const opt = document.createElement('option');
-                opt.value = JSON.stringify({lat: loc.latitude, lon: loc.longitude});
-                opt.textContent = loc.location_name;
+                opt.value = JSON.stringify({city_id: city.id, name: city.name});
+                opt.textContent = city.name;
                 select.appendChild(opt);
             });
         }
@@ -293,7 +268,7 @@ async function loadRawData() {
 
         const loc = JSON.parse(locJson);
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?latitude=eq.${loc.lat.toFixed(2)}&longitude=eq.${loc.lon.toFixed(2)}&forecast_time=gte.${dateFrom}T00:00:00Z&forecast_time=lte.${dateTo}T23:59:59Z&limit=10000`,
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?city_id=eq.${loc.city_id}&forecast_time=gte.${dateFrom}T00:00:00Z&forecast_time=lte.${dateTo}T23:59:59Z&order=forecast_time.asc&limit=10000`,
             {headers: {'apikey': API_CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json'}}
         );
 
@@ -348,7 +323,7 @@ async function loadDailyStats() {
 
         const loc = JSON.parse(locJson);
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?latitude=eq.${loc.lat.toFixed(2)}&longitude=eq.${loc.lon.toFixed(2)}&date=gte.${startDate}&date=lte.${endDate}&limit=10000`,
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?city_id=eq.${loc.city_id}&date=gte.${startDate}&date=lte.${endDate}&order=date.asc&limit=10000`,
             {headers: {'apikey': API_CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json'}}
         );
 

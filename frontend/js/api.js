@@ -9,12 +9,12 @@ const API_CONFIG = {
 };
 
 /**
- * Pobiera dostępne lokalizacje z Supabase
+ * Pobiera dostępne lokalizacje z tabeli cities
  */
 async function getAvailableLocations() {
     try {
         const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?select=latitude,longitude,location_name`,
+            `${API_CONFIG.SUPABASE_URL}/rest/v1/cities?select=id,name,latitude,longitude`,
             {
                 headers: {
                     'apikey': API_CONFIG.SUPABASE_KEY,
@@ -25,18 +25,7 @@ async function getAvailableLocations() {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        let locations = await response.json();
-
-        // Deduplicate by (lat, lon)
-        const seen = new Set();
-        locations = locations.filter(loc => {
-            const key = `${loc.latitude.toFixed(2)},${loc.longitude.toFixed(2)}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-
-        return locations || [];
+        return await response.json();
     } catch (error) {
         console.error('Błąd przy pobieraniu lokalizacji:', error);
         return [];
@@ -44,20 +33,14 @@ async function getAvailableLocations() {
 }
 
 /**
- * Pobiera dane pogodowe dla wybranego miejsca i okresu
- * @param {number} lat - szerokość geograficzna
- * @param {number} lon - długość geograficzna
+ * Pobiera dane pogodowe dla wybranego miasta i okresu
+ * @param {number} cityId - ID miasta
  * @param {string} startDate - data początkowa (YYYY-MM-DD)
  * @param {string} endDate - data końcowa (YYYY-MM-DD)
  */
-async function getWeatherData(lat, lon, startDate, endDate) {
+async function getWeatherData(cityId, startDate, endDate) {
     try {
-        // Zaokrąglij współrzędne do 0.01° dokładności
-        const latRounded = Math.round(lat * 100) / 100;
-        const lonRounded = Math.round(lon * 100) / 100;
-
-        // Zbuduj filtr RLS dla Supabase
-        const query = `latitude=eq.${latRounded}&longitude=eq.${lonRounded}&forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&order=forecast_time.asc`;
+        const query = `city_id=eq.${cityId}&forecast_time=gte.${startDate}T00:00:00Z&forecast_time=lte.${endDate}T23:59:59Z&order=forecast_time.asc`;
 
         const response = await fetch(
             `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?${query}`,
@@ -80,16 +63,12 @@ async function getWeatherData(lat, lon, startDate, endDate) {
 
 /**
  * Pobiera statystyki dzienne z cache (Firestore lub Supabase)
- * @param {number} lat - szerokość geograficzna
- * @param {number} lon - długość geograficzna
+ * @param {number} cityId - ID miasta
  * @param {string} date - data (YYYY-MM-DD)
  */
-async function getDailyStats(lat, lon, date) {
+async function getDailyStats(cityId, date) {
     try {
-        const latRounded = Math.round(lat * 100) / 100;
-        const lonRounded = Math.round(lon * 100) / 100;
-
-        const query = `latitude=eq.${latRounded}&longitude=eq.${lonRounded}&date=eq.${date}`;
+        const query = `city_id=eq.${cityId}&date=eq.${date}`;
 
         const response = await fetch(
             `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?${query}`,

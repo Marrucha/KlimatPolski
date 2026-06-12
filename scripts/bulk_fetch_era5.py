@@ -20,6 +20,8 @@ import cdsapi
 import xarray as xr
 from pathlib import Path
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 load_dotenv()
 
@@ -47,32 +49,36 @@ def setup_cds_credentials():
         logger.info("✓ Zapisano CDS credentials")
 
 
-def fetch_era5_month(year: int, month: int, variables: list, bbox: list, city_name: str) -> str:
+def fetch_era5_period(start_year: int, end_year: int, variables: list, bbox: list, city_name: str) -> str:
     """
-    Pobiera wybrane zmienne ERA5 dla danego miesiąca, roku i miasta.
+    Pobiera ERA5 dla całego okresu (wszystkie miesiące + lata) w jednym request.
 
     Args:
-        year: Rok do pobrania (np. 2020)
-        month: Miesiąc do pobrania (1-12)
-        variables: Lista zmiennych ERA5 do pobrania
-        bbox: [north, west, south, east] bounding box dla miasta
+        start_year: Rok początkowy
+        end_year: Rok końcowy
+        variables: Lista zmiennych ERA5
+        bbox: [north, west, south, east] bounding box
         city_name: Nazwa miasta (do logowania)
 
     Returns:
         Ścieżka do pobranego pliku
     """
-    logger.info(f"Pobieranie ERA5 dla {city_name} {year}-{month:02d} (zmienne: {variables})...")
+    logger.info(f"Pobieranie ERA5 dla {city_name} {start_year}-{end_year} (cały okres)...")
 
     client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
-    output_file = f"era5_{city_name}_{year}_{month:02d}.download"
+    output_file = f"era5_{city_name}_{start_year}_{end_year}.download"
+
+    years = [str(y) for y in range(start_year, end_year + 1)]
+    months = [f"{m:02d}" for m in range(1, 13)]
+    days = [f"{d:02d}" for d in range(1, 32)]
 
     request = {
         'product_type': 'reanalysis',
         'data_format': 'netcdf',
         'area': bbox,
-        'year': str(year),
-        'month': f"{month:02d}",
-        'day': [f"{d:02d}" for d in range(1, 32)],
+        'year': years,
+        'month': months,
+        'day': days,
         'time': ['00:00', '06:00', '12:00', '18:00'],
         'variable': variables,
     }
@@ -268,12 +274,56 @@ def get_cities_from_db(supabase) -> list:
     return cities
 
 
-def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int = 2025, end_month: int = 12):
+def fetch_city_data(city, start_year, end_year, variables):
+    """Pobiera dane dla jednego miasta - cały okres naraz."""
+    city_id = city['id']
+    city_name = city['name']
+    lat = city['latitude']
+    lon = city['longitude']
+    bbox = [lat, lon, lat, lon]
+
+    supabase = SupabaseClient()
+    if not supabase.connect():
+        logger.error(f"Nie można się połączyć z Supabase dla {city_name}")
+        return 0
+
+    logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id}) - pobieranie {start_year}-{end_year}...")
+
+    download_file = None
+    try:
+        download_file = fetch_era5_period(start_year, end_year, variables, bbox, city_name)
+        time.sleep(2)  # Rate limiting między miastami
+
+        records = parse_era5_to_records(download_file, city_id, city_name)
+
+        if not records:
+            logger.warning(f"  ⚠ Brak danych dla {city_name}")
+            supabase.close()
+            return 0
+
+        inserted, _ = supabase.insert_weather_records(records)
+        logger.info(f"  ✓ {city_name}: wstawiono {inserted} rekordów")
+        supabase.close()
+        return inserted
+
+    except Exception as e:
+        logger.error(f"  ✗ {city_name}: {e}")
+        supabase.close()
+        return 0
+    finally:
+        if download_file and os.path.exists(download_file):
+            try:
+                os.remove(download_file)
+            except:
+                pass
+
+
+def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int = 2025, end_month: int = 12):
     """
-    Pobiera dane ERA5 dla miast z tabeli cities w Supabase, w ujęciu miesięcznym.
+    Pobiera dane ERA5 dla miast równolegle (3 miasta naraz).
 
     Args:
-        start_year: Rok początkowy
+        start_year: Rok początkowy (domyślnie 1950)
         start_month: Miesiąc początkowy (1-12)
         end_year: Rok końcowy (włącznie)
         end_month: Miesiąc końcowy (1-12)
@@ -289,8 +339,9 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
         logger.error("Nie można się połączyć z Supabase")
         return
 
-    # Pobierz miasta z bazy
     cities = get_cities_from_db(supabase)
+    supabase.close()
+
     if not cities:
         logger.error("Brak miast w bazie")
         return
@@ -310,49 +361,21 @@ def bulk_fetch_era5(start_year: int = 2005, start_month: int = 1, end_year: int 
 
     total_records = 0
 
-    for city in cities:
-        city_id = city['id']
-        city_name = city['name']
-        lat = city['latitude']
-        lon = city['longitude']
-        bbox = [lat, lon, lat, lon]
-        logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
+    # Pobierz równolegle dla 2 miast naraz (1 request = cały okres)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {
+            executor.submit(fetch_city_data, city, start_year, end_year, variables): city
+            for city in cities
+        }
 
-        for year in range(start_year, end_year + 1):
-            months = range(1, 13)
-            if year == start_year:
-                months = range(start_month, 13)
-            if year == end_year:
-                months = range(1 if year != start_year else start_month, end_month + 1)
-
-            for month in months:
-                logger.info(f"  OKRES {year}-{month:02d}")
-
-                download_file = None
-                try:
-                    download_file = fetch_era5_month(year, month, variables, bbox, city_name)
-                    records = parse_era5_to_records(download_file, city_id, city_name)
-
-                    if not records:
-                        logger.warning(f"  Brak rekordów dla {city_name} {year}-{month:02d}")
-                        continue
-
-                    inserted, _ = supabase.insert_weather_records(records)
-                    total_records += inserted
-                    logger.info(f"  ✓ Wstawiono/zaktualizowano {inserted} rekordów (razem: {total_records})")
-
-                except Exception as e:
-                    logger.error(f"  ✗ Błąd dla {city_name} {year}-{month:02d}: {e}")
-                    continue
-                finally:
-                    if download_file and os.path.exists(download_file):
-                        try:
-                            os.remove(download_file)
-                            logger.info(f"  ✓ Usunięto plik pobrany {download_file}")
-                        except Exception as e:
-                            logger.warning(f"  ⚠ Nie udało się usunąć pliku {download_file}: {e}")
-
-    supabase.close()
+        for future in as_completed(futures):
+            city = futures[future]
+            try:
+                records = future.result()
+                total_records += records
+                logger.info(f"✓ {city['name']}: +{records} rekordów")
+            except Exception as e:
+                logger.error(f"✗ {city['name']}: {e}")
 
     logger.info("\n" + "=" * 60)
     logger.info(f"✓ GOTOWE: Wstawiono łącznie {total_records} rekordów")

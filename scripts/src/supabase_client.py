@@ -76,6 +76,7 @@ class SupabaseClient:
     def insert_weather_records(self, records: List[Dict]) -> tuple:
         """
         Wstawia rekordy pogodowe przez REST API.
+        Mapuje latitude/longitude na city_id z tabeli cities.
 
         Args:
             records: Lista słowników z danymi pogodowymi
@@ -87,12 +88,39 @@ class SupabaseClient:
             return 0, 0
 
         try:
+            # Pobierz mapowanie lat/lon -> city_id z bazy
+            cities = self.get_records("cities", "select=id,latitude,longitude")
+            if not cities:
+                logger.error("✗ Brak miast w bazie")
+                return 0, 0
+
+            # Stwórz lookup table: (lat, lon) -> city_id
+            city_lookup = {}
+            for city in cities:
+                key = (city['latitude'], city['longitude'])
+                city_lookup[key] = city['id']
+
+            logger.info(f"Załadowano {len(city_lookup)} miast")
+
+            # Mapuj rekordy na city_id używając dokładnych koordynatów
+            for record in records:
+                key = (record.get('latitude'), record.get('longitude'))
+                if key in city_lookup:
+                    record['city_id'] = city_lookup[key]
+
+            # Filtruj tylko rekordy z city_id
+            records_with_city = [r for r in records if 'city_id' in r]
+            logger.info(f"Mapowalnych rekordów: {len(records_with_city)}/{len(records)}")
+
+            if not records_with_city:
+                return 0, 0
+
             # Podziel na batche (Supabase limit ~1000)
             batch_size = 500
             total_inserted = 0
 
-            for i in range(0, len(records), batch_size):
-                batch = records[i:i+batch_size]
+            for i in range(0, len(records_with_city), batch_size):
+                batch = records_with_city[i:i+batch_size]
 
                 headers = self.headers.copy()
                 headers["Prefer"] = "return=representation,resolution=merge-duplicates"
@@ -121,6 +149,7 @@ class SupabaseClient:
     def insert_daily_stats(self, stats: List[Dict]) -> int:
         """
         Wstawia statystyki dzienne przez REST API.
+        Mapuje latitude/longitude na city_id z tabeli cities.
 
         Args:
             stats: Lista słowników ze statystykami dziennymi
@@ -132,19 +161,46 @@ class SupabaseClient:
             return 0
 
         try:
+            # Pobierz mapowanie lat/lon -> city_id z bazy
+            cities = self.get_records("cities", "select=id,latitude,longitude")
+            if not cities:
+                logger.error("✗ Brak miast w bazie")
+                return 0
+
+            # Stwórz lookup table: (lat, lon) -> city_id
+            city_lookup = {}
+            for city in cities:
+                key = (city['latitude'], city['longitude'])
+                city_lookup[key] = city['id']
+
+            logger.info(f"Załadowano {len(city_lookup)} miast")
+
+            # Mapuj statystyki na city_id
+            for stat in stats:
+                key = (stat.get('latitude'), stat.get('longitude'))
+                if key in city_lookup:
+                    stat['city_id'] = city_lookup[key]
+
+            # Filtruj tylko statystyki z city_id
+            stats_with_city = [s for s in stats if 'city_id' in s]
+            logger.info(f"Mapowanych statystyk: {len(stats_with_city)}/{len(stats)}")
+
+            if not stats_with_city:
+                return 0
+
             headers = self.headers.copy()
             headers["Prefer"] = "return=representation,resolution=merge-duplicates"
 
             response = requests.post(
-                f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}?on_conflict=date,latitude,longitude",
+                f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}?on_conflict=date,city_id",
                 headers=headers,
-                json=stats,
+                json=stats_with_city,
                 timeout=30
             )
 
             if response.status_code in [200, 201]:
-                logger.info(f"✓ Wstawiono {len(stats)} statystyk dziennych")
-                return len(stats)
+                logger.info(f"✓ Wstawiono {len(stats_with_city)} statystyk dziennych")
+                return len(stats_with_city)
             else:
                 logger.error(f"✗ Błąd przy insercie daily_stats: {response.status_code} - {response.text}")
                 return 0
