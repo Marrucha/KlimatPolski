@@ -55,7 +55,7 @@ def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list
     months = [f"{m:02d}" for m in range(1, 13)]
     days = [f"{d:02d}" for d in range(1, 32)]
 
-    hours = [f'{h:02d}:00' for h in range(24)]
+    hours = ['00:00', '06:00', '12:00', '18:00']
 
     request = {
         'product_type': 'reanalysis',
@@ -253,7 +253,8 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
     city_name = city['name']
     lat = city['latitude']
     lon = city['longitude']
-    bbox = [lat, lon, lat, lon]
+    # CDS wymaga regionu [north, west, south, east], nie punktu
+    bbox = [lat + 0.05, lon - 0.05, lat - 0.05, lon + 0.05]
 
     supabase = SupabaseClient()
     if not supabase.connect():
