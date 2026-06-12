@@ -33,6 +33,15 @@ on:
           - Świnoujście (51)
           - Władysławowa (52)
           - 20km na północ od Władysławowa (53)
+      period:
+        description: 'Wybierz okres'
+        required: true
+        default: '2000-2026'
+        type: choice
+        options:
+          - 2000-2026 (27 lat)
+          - 1975-1999 (25 lat)
+          - 1950-1974 (25 lat)
 
 jobs:
   bulk-fetch:
@@ -51,8 +60,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Extract city ID
-        id: extract_city
+      - name: Extract parameters
+        id: extract
         run: |
           CITY_INPUT="${{ github.event.inputs.city }}"
           if [[ "$CITY_INPUT" == "all" ]]; then
@@ -60,6 +69,18 @@ jobs:
           else
             CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
             echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
+          fi
+
+          PERIOD_INPUT="${{ github.event.inputs.period }}"
+          if [[ "$PERIOD_INPUT" == "2000-2026"* ]]; then
+            echo "start_year=2000" >> $GITHUB_OUTPUT
+            echo "end_year=2026" >> $GITHUB_OUTPUT
+          elif [[ "$PERIOD_INPUT" == "1975-1999"* ]]; then
+            echo "start_year=1975" >> $GITHUB_OUTPUT
+            echo "end_year=1999" >> $GITHUB_OUTPUT
+          elif [[ "$PERIOD_INPUT" == "1950-1974"* ]]; then
+            echo "start_year=1950" >> $GITHUB_OUTPUT
+            echo "end_year=1974" >> $GITHUB_OUTPUT
           fi
 
       - name: Fetch ERA5 data
@@ -70,9 +91,9 @@ jobs:
           CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
         run: |
           python scripts/bulk_fetch_era5.py \
-            --city-id "${{ steps.extract_city.outputs.city_id }}" \
-            --start-year 1950 \
-            --end-year 2026
+            --city-id "${{ steps.extract.outputs.city_id }}" \
+            --start-year ${{ steps.extract.outputs.start_year }} \
+            --end-year ${{ steps.extract.outputs.end_year }}
 
       - name: Upload logs on failure
         if: failure()
