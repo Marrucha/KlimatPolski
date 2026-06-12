@@ -9,6 +9,7 @@ on:
         default: 'Warszawa (37)'
         type: choice
         options:
+          - Wszystkie (all)
           - Warszawa (37)
           - Kraków (38)
           - Włodawa (1)
@@ -32,6 +33,18 @@ on:
           - Świnoujście (51)
           - Władysławowa (52)
           - 20km na północ od Władysławowa (53)
+      start_year:
+        description: 'Rok początkowy pobierania (np. 1950)'
+        required: true
+        default: '1950'
+      end_year:
+        description: 'Rok końcowy pobierania (np. 2026)'
+        required: true
+        default: '2026'
+      workers:
+        description: 'Liczba równoległych wątków (domyślnie 2)'
+        required: true
+        default: '2'
 
 jobs:
   bulk-fetch:
@@ -54,7 +67,11 @@ jobs:
         id: extract
         run: |
           CITY_INPUT="${{ github.event.inputs.city }}"
-          CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
+          if [ "$CITY_INPUT" = "Wszystkie (all)" ]; then
+            CITY_ID="all"
+          else
+            CITY_ID=$(echo "$CITY_INPUT" | grep -oP '\(\K[0-9]+(?=\))')
+          fi
           echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
 
       - name: Fetch ERA5 data (yearly chunks)
@@ -66,9 +83,10 @@ jobs:
         run: |
           python scripts/bulk_fetch_era5.py \
             --city-id "${{ steps.extract.outputs.city_id }}" \
-            --start-year 1950 \
-            --end-year 2026 \
-            --chunk-size 1
+            --start-year "${{ github.event.inputs.start_year }}" \
+            --end-year "${{ github.event.inputs.end_year }}" \
+            --chunk-size 1 \
+            --workers "${{ github.event.inputs.workers }}"
 
       - name: Upload logs on failure
         if: failure()
