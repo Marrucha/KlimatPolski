@@ -33,20 +33,6 @@ on:
           - Świnoujście (51)
           - Władysławowa (52)
           - 20km na północ od Władysławowa (53)
-      period:
-        description: 'Wybierz okres (10 lat)'
-        required: true
-        default: '2017-2026'
-        type: choice
-        options:
-          - 2017-2026 (10 lat)
-          - 2007-2016 (10 lat)
-          - 1997-2006 (10 lat)
-          - 1987-1996 (10 lat)
-          - 1977-1986 (10 lat)
-          - 1967-1976 (10 lat)
-          - 1957-1966 (10 lat)
-          - 1950-1956 (7 lat)
 
 jobs:
   bulk-fetch:
@@ -65,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Extract parameters
+      - name: Extract city ID
         id: extract
         run: |
           CITY_INPUT="${{ github.event.inputs.city }}"
@@ -76,19 +62,7 @@ jobs:
             echo "city_id=$CITY_ID" >> $GITHUB_OUTPUT
           fi
 
-          PERIOD_INPUT="${{ github.event.inputs.period }}"
-          case "$PERIOD_INPUT" in
-            "2017-2026"*) echo "start_year=2017" >> $GITHUB_OUTPUT; echo "end_year=2026" >> $GITHUB_OUTPUT;;
-            "2007-2016"*) echo "start_year=2007" >> $GITHUB_OUTPUT; echo "end_year=2016" >> $GITHUB_OUTPUT;;
-            "1997-2006"*) echo "start_year=1997" >> $GITHUB_OUTPUT; echo "end_year=2006" >> $GITHUB_OUTPUT;;
-            "1987-1996"*) echo "start_year=1987" >> $GITHUB_OUTPUT; echo "end_year=1996" >> $GITHUB_OUTPUT;;
-            "1977-1986"*) echo "start_year=1977" >> $GITHUB_OUTPUT; echo "end_year=1986" >> $GITHUB_OUTPUT;;
-            "1967-1976"*) echo "start_year=1967" >> $GITHUB_OUTPUT; echo "end_year=1976" >> $GITHUB_OUTPUT;;
-            "1957-1966"*) echo "start_year=1957" >> $GITHUB_OUTPUT; echo "end_year=1966" >> $GITHUB_OUTPUT;;
-            "1950-1956"*) echo "start_year=1950" >> $GITHUB_OUTPUT; echo "end_year=1956" >> $GITHUB_OUTPUT;;
-          esac
-
-      - name: Fetch ERA5 data
+      - name: Fetch ERA5 data (2-year chunks)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
@@ -97,8 +71,9 @@ jobs:
         run: |
           python scripts/bulk_fetch_era5.py \
             --city-id "${{ steps.extract.outputs.city_id }}" \
-            --start-year ${{ steps.extract.outputs.start_year }} \
-            --end-year ${{ steps.extract.outputs.end_year }}
+            --start-year 1950 \
+            --end-year 2026 \
+            --chunk-size 2
 
       - name: Upload logs on failure
         if: failure()

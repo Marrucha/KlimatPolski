@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-Pobieranie historycznych danych ERA5 dla 23 miast Polski (2005-2025).
-Pobiera dla każdego miasta osobno (zmniejszony bbox) aby zmieścić się w limitach API.
-Wstawienie do Supabase w ujęciu miesięcznym.
-
-Wymaga:
-- ~/.cdsapi z credentials (lub zmienne env CDS_UID, CDS_API_KEY)
-- pip install cdsapi
+Pobieranie historycznych danych ERA5 dla 23 miast Polski (1950-2026).
+Pobiera dane w małych chunkach (domyślnie 2 lata) aby zmieścić się w limitach CDS API.
 """
 import os
 import sys
@@ -22,6 +17,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import argparse
 
 load_dotenv()
 
@@ -39,7 +35,6 @@ CDS_API_KEY = os.getenv('CDS_API_KEY', 'c0acab3c-6a02-4941-85fa-5fb00ce939f3')
 CDS_URL = 'https://cds.climate.copernicus.eu/api'
 
 
-
 def setup_cds_credentials():
     """Ustawia credentials do CDS API."""
     cds_dir = Path.home() / '.cdsapi'
@@ -49,21 +44,9 @@ def setup_cds_credentials():
         logger.info("✓ Zapisano CDS credentials")
 
 
-def fetch_era5_period(start_year: int, end_year: int, variables: list, bbox: list, city_name: str) -> str:
-    """
-    Pobiera ERA5 dla całego okresu (wszystkie miesiące + lata) w jednym request.
-
-    Args:
-        start_year: Rok początkowy
-        end_year: Rok końcowy
-        variables: Lista zmiennych ERA5
-        bbox: [north, west, south, east] bounding box
-        city_name: Nazwa miasta (do logowania)
-
-    Returns:
-        Ścieżka do pobranego pliku
-    """
-    logger.info(f"Pobieranie ERA5 dla {city_name} {start_year}-{end_year} (cały okres)...")
+def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list, city_name: str) -> str:
+    """Pobiera ERA5 dla okresu (np. 2-letni chunk)."""
+    logger.info(f"  {start_year}-{end_year}...")
 
     client = cdsapi.Client(url=CDS_URL, key=CDS_API_KEY)
     output_file = f"era5_{city_name}_{start_year}_{end_year}.download"
@@ -84,22 +67,11 @@ def fetch_era5_period(start_year: int, end_year: int, variables: list, bbox: lis
     }
 
     client.retrieve('reanalysis-era5-single-levels', request, output_file)
-    logger.info(f"✓ Pobrano {output_file}")
     return output_file
 
 
 def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> list:
-    """
-    Parsuje plik pobrany z ERA5 do rekordów dla Supabase.
-
-    Args:
-        download_file: Ścieżka do pliku pobranego
-        city_id: ID miasta
-        city_name: Nazwa miasta
-
-    Returns:
-        Lista słowników z danymi
-    """
+    """Parsuje plik pobrany z ERA5 do rekordów dla Supabase."""
     logger.info(f"Parsowanie {download_file}...")
 
     temp_dir = None
@@ -254,7 +226,6 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
 
     if temp_dir and os.path.exists(temp_dir):
         try:
-            # Zamknij xarray dataset zanim usuniesz plik
             if ds is not None:
                 ds.close()
             shutil.rmtree(temp_dir)
@@ -274,8 +245,8 @@ def get_cities_from_db(supabase) -> list:
     return cities
 
 
-def fetch_city_data(city, start_year, end_year, variables):
-    """Pobiera dane dla jednego miasta - cały okres naraz."""
+def fetch_city_data(city, start_year, end_year, chunk_size, variables):
+    """Pobiera dane dla jednego miasta - chunk po chunk."""
     city_id = city['id']
     city_name = city['name']
     lat = city['latitude']
@@ -287,49 +258,48 @@ def fetch_city_data(city, start_year, end_year, variables):
         logger.error(f"Nie można się połączyć z Supabase dla {city_name}")
         return 0
 
-    logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id}) - pobieranie {start_year}-{end_year}...")
+    logger.info(f"\n>>> MIASTO: {city_name} (ID: {city_id})")
 
-    download_file = None
-    try:
-        download_file = fetch_era5_period(start_year, end_year, variables, bbox, city_name)
-        time.sleep(2)  # Rate limiting między miastami
+    total = 0
+    year = start_year
+    while year <= end_year:
+        chunk_end = min(year + chunk_size - 1, end_year)
+        download_file = None
 
-        records = parse_era5_to_records(download_file, city_id, city_name)
+        try:
+            download_file = fetch_era5_chunk(year, chunk_end, variables, bbox, city_name)
+            time.sleep(1)
 
-        if not records:
-            logger.warning(f"  ⚠ Brak danych dla {city_name}")
-            supabase.close()
-            return 0
+            records = parse_era5_to_records(download_file, city_id, city_name)
 
-        inserted, _ = supabase.insert_weather_records(records)
-        logger.info(f"  ✓ {city_name}: wstawiono {inserted} rekordów")
-        supabase.close()
-        return inserted
+            if records:
+                inserted, _ = supabase.insert_weather_records(records)
+                total += inserted
+                logger.info(f"  ✓ {year}-{chunk_end}: +{inserted}")
+            else:
+                logger.warning(f"  ⚠ {year}-{chunk_end}: brak danych")
 
-    except Exception as e:
-        logger.error(f"  ✗ {city_name}: {e}")
-        supabase.close()
-        return 0
-    finally:
-        if download_file and os.path.exists(download_file):
-            try:
-                os.remove(download_file)
-            except:
-                pass
+        except Exception as e:
+            logger.warning(f"  ✗ {year}-{chunk_end}: {e}")
+
+        finally:
+            if download_file and os.path.exists(download_file):
+                try:
+                    os.remove(download_file)
+                except:
+                    pass
+
+        year = chunk_end + 1
+
+    logger.info(f"✓ {city_name}: wstawiono łącznie {total} rekordów")
+    supabase.close()
+    return total
 
 
-def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int = 2025, end_month: int = 12):
-    """
-    Pobiera dane ERA5 dla miast równolegle (3 miasta naraz).
-
-    Args:
-        start_year: Rok początkowy (domyślnie 1950)
-        start_month: Miesiąc początkowy (1-12)
-        end_year: Rok końcowy (włącznie)
-        end_month: Miesiąc końcowy (1-12)
-    """
+def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 2):
+    """Pobiera dane ERA5 dla miast równolegle, chunk po chunk."""
     logger.info("=" * 60)
-    logger.info(f"START: Bulk fetch ERA5: {start_year}-{start_month:02d} do {end_year}-{end_month:02d}")
+    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} lat)")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -361,10 +331,9 @@ def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int 
 
     total_records = 0
 
-    # Pobierz równolegle dla 2 miast naraz (1 request = cały okres)
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
-            executor.submit(fetch_city_data, city, start_year, end_year, variables): city
+            executor.submit(fetch_city_data, city, start_year, end_year, chunk_size, variables): city
             for city in cities
         }
 
@@ -373,7 +342,6 @@ def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int 
             try:
                 records = future.result()
                 total_records += records
-                logger.info(f"✓ {city['name']}: +{records} rekordów")
             except Exception as e:
                 logger.error(f"✗ {city['name']}: {e}")
 
@@ -383,20 +351,19 @@ def bulk_fetch_era5(start_year: int = 1950, start_month: int = 1, end_year: int 
 
 
 if __name__ == '__main__':
-    import argparse
-
     parser = argparse.ArgumentParser(description='Bulk fetch ERA5 data')
     parser.add_argument('--city-id', default='all', help='City ID to fetch (or "all")')
     parser.add_argument('--start-year', type=int, default=1950, help='Start year')
     parser.add_argument('--end-year', type=int, default=2026, help='End year')
+    parser.add_argument('--chunk-size', type=int, default=2, help='Chunk size in years')
 
     args = parser.parse_args()
 
     start_year = args.start_year
     end_year = args.end_year
+    chunk_size = args.chunk_size
     city_id_filter = args.city_id if args.city_id != 'all' else None
 
-    # Jeśli podano city_id, pobierz tylko to miasto
     if city_id_filter:
         setup_cds_credentials()
         supabase = SupabaseClient()
@@ -418,12 +385,11 @@ if __name__ == '__main__':
                     'snowfall',
                     '2m_dewpoint_temperature'
                 ]
-                total = fetch_city_data(city, start_year, end_year, variables)
+                total = fetch_city_data(city, start_year, end_year, chunk_size, variables)
                 logger.info(f"\n✓ Pobrano dla {city['name']}: {total} rekordów")
             else:
                 logger.error(f"Miasto o ID {city_id_filter} nie znalezione")
         else:
             logger.error("Nie można się połączyć z Supabase")
     else:
-        # Pobierz wszystkie miasta
-        bulk_fetch_era5(start_year=start_year, end_year=end_year)
+        bulk_fetch_era5(start_year=start_year, end_year=end_year, chunk_size=chunk_size)
