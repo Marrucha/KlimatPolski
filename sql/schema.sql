@@ -70,12 +70,34 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     wind_speed_avg DECIMAL(5, 2),
     wind_speed_max DECIMAL(5, 2),
     wind_direction_dominant DECIMAL(6, 2),
+    wind_gust_max DECIMAL(5, 2),
 
     -- Suma opadów
     precipitation_sum DECIMAL(8, 2),
+    snowfall_sum DECIMAL(8, 2),
 
     -- Średnie zachmurzenie
     cloud_cover_avg DECIMAL(5, 2),
+
+    -- Statystyki ciśnienia
+    pressure_msl_min DECIMAL(8, 2),
+    pressure_msl_max DECIMAL(8, 2),
+    pressure_msl_avg DECIMAL(8, 2),
+
+    -- Statystyki temperatury punktu rosy
+    dewpoint_2m_min DECIMAL(5, 2),
+    dewpoint_2m_max DECIMAL(5, 2),
+    dewpoint_2m_avg DECIMAL(5, 2),
+
+    -- Statystyki wilgotności
+    humidity_2m_min DECIMAL(5, 2),
+    humidity_2m_max DECIMAL(5, 2),
+    humidity_2m_avg DECIMAL(5, 2),
+
+    -- Statystyki temperatury powierzchni wody
+    sea_surface_temp_min DECIMAL(5, 2),
+    sea_surface_temp_max DECIMAL(5, 2),
+    sea_surface_temp_avg DECIMAL(5, 2),
 
     -- Metadane
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

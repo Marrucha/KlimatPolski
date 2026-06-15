@@ -157,11 +157,44 @@
                 <div class="control-group">
                     <label for="daily-measure-select">Wybierz miarę:</label>
                     <select id="daily-measure-select">
-                        <option value="temp_avg">Temperatura (średnia)</option>
-                        <option value="temp_min_max">Temperatura (min/max)</option>
-                        <option value="wind_speed_avg">Wiatr (średnia)</option>
-                        <option value="precipitation_sum">Opady</option>
-                        <option value="cloud_cover_avg">Zachmurzenie</option>
+                        <optgroup label="Temperatura">
+                            <option value="temp_avg">Temperatura (średnia)</option>
+                            <option value="temp_min">Temperatura (min)</option>
+                            <option value="temp_max">Temperatura (max)</option>
+                        </optgroup>
+                        <optgroup label="Wiatr">
+                            <option value="wind_speed_avg">Prędkość wiatru (średnia)</option>
+                            <option value="wind_speed_max">Prędkość wiatru (max)</option>
+                            <option value="wind_gust_max">Porywy wiatru (max)</option>
+                            <option value="wind_direction_dominant">Kierunek dominujący</option>
+                        </optgroup>
+                        <optgroup label="Opady">
+                            <option value="precipitation_sum">Opady deszczu (suma)</option>
+                            <option value="snowfall_sum">Śnieg (suma)</option>
+                        </optgroup>
+                        <optgroup label="Zachmurzenie">
+                            <option value="cloud_cover_avg">Zachmurzenie (średnie)</option>
+                        </optgroup>
+                        <optgroup label="Ciśnienie">
+                            <option value="pressure_msl_avg">Ciśnienie (średnie)</option>
+                            <option value="pressure_msl_min">Ciśnienie (min)</option>
+                            <option value="pressure_msl_max">Ciśnienie (max)</option>
+                        </optgroup>
+                        <optgroup label="Temperatura punktu rosy">
+                            <option value="dewpoint_2m_avg">Punkt rosy (średnia)</option>
+                            <option value="dewpoint_2m_min">Punkt rosy (min)</option>
+                            <option value="dewpoint_2m_max">Punkt rosy (max)</option>
+                        </optgroup>
+                        <optgroup label="Wilgotność">
+                            <option value="humidity_2m_avg">Wilgotność (średnia)</option>
+                            <option value="humidity_2m_min">Wilgotność (min)</option>
+                            <option value="humidity_2m_max">Wilgotność (max)</option>
+                        </optgroup>
+                        <optgroup label="Temperatura wody">
+                            <option value="sea_surface_temp_avg">Temperatura wody (średnia)</option>
+                            <option value="sea_surface_temp_min">Temperatura wody (min)</option>
+                            <option value="sea_surface_temp_max">Temperatura wody (max)</option>
+                        </optgroup>
                     </select>
                 </div>
 
