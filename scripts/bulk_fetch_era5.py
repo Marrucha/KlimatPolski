@@ -196,6 +196,8 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
                             val = val / 100.0
                         elif db_col == 'precipitation_6h':
                             val = val * 1000.0
+                        elif db_col == 'snowfall_6h':
+                            pass  # Already in mm, no conversion needed
                         elif db_col == 'cloud_cover_total':
                             if val <= 1.0:
                                 val = val * 100.0
@@ -326,6 +328,7 @@ def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: in
         '10m_wind_gust_since_previous_post_processing',
         'total_cloud_cover',
         'sea_surface_temperature',
+        'snowfall',
         '2m_dewpoint_temperature'
     ]
 
