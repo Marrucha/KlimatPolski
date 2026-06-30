@@ -55,8 +55,14 @@ class DataAggregator:
                 temps = [r["temperature_2m"] for r in group_records if r.get("temperature_2m")]
                 wind_speeds = [r["wind_speed_10m"] for r in group_records if r.get("wind_speed_10m")]
                 wind_dirs = [r["wind_direction_10m"] for r in group_records if r.get("wind_direction_10m")]
+                wind_gusts = [r["wind_gust_10m"] for r in group_records if r.get("wind_gust_10m")]
                 precips = [r["precipitation_6h"] for r in group_records if r.get("precipitation_6h")]
+                snowfalls = [r["snowfall_6h"] for r in group_records if r.get("snowfall_6h")]
                 clouds = [r["cloud_cover_total"] for r in group_records if r.get("cloud_cover_total")]
+                pressures = [r["pressure_msl"] for r in group_records if r.get("pressure_msl")]
+                dewpoints = [r["dewpoint_temperature_2m"] for r in group_records if r.get("dewpoint_temperature_2m")]
+                humidities = [r["relative_humidity_2m"] for r in group_records if r.get("relative_humidity_2m")]
+                sea_temps = [r["sea_surface_temperature"] for r in group_records if r.get("sea_surface_temperature")]
 
                 stat = {
                     "date": date_str,
@@ -68,9 +74,23 @@ class DataAggregator:
                     "temp_avg": statistics.mean(temps) if temps else None,
                     "wind_speed_avg": statistics.mean(wind_speeds) if wind_speeds else None,
                     "wind_speed_max": max(wind_speeds) if wind_speeds else None,
+                    "wind_gust_max": max(wind_gusts) if wind_gusts else None,
                     "wind_direction_dominant": DataAggregator._mean_circular(wind_dirs) if wind_dirs else None,
                     "precipitation_sum": sum(precips) if precips else None,
+                    "snowfall_sum": sum(snowfalls) if snowfalls else None,
                     "cloud_cover_avg": statistics.mean(clouds) if clouds else None,
+                    "pressure_msl_min": min(pressures) if pressures else None,
+                    "pressure_msl_max": max(pressures) if pressures else None,
+                    "pressure_msl_avg": statistics.mean(pressures) if pressures else None,
+                    "dewpoint_2m_min": min(dewpoints) if dewpoints else None,
+                    "dewpoint_2m_max": max(dewpoints) if dewpoints else None,
+                    "dewpoint_2m_avg": statistics.mean(dewpoints) if dewpoints else None,
+                    "humidity_2m_min": min(humidities) if humidities else None,
+                    "humidity_2m_max": max(humidities) if humidities else None,
+                    "humidity_2m_avg": statistics.mean(humidities) if humidities else None,
+                    "sea_surface_temp_min": min(sea_temps) if sea_temps else None,
+                    "sea_surface_temp_max": max(sea_temps) if sea_temps else None,
+                    "sea_surface_temp_avg": statistics.mean(sea_temps) if sea_temps else None,
                 }
 
                 stats.append(stat)

@@ -278,6 +278,46 @@ async function initializeLocationSelects() {
     }
 }
 
+// === SYNCHRONIZACJA MIĘDZY ZAKŁADKAMI ===
+function syncLocationSelects(sourceSelect) {
+    const locationValue = sourceSelect.value;
+    document.getElementById('location-select').value = locationValue;
+    document.getElementById('raw-location-select').value = locationValue;
+    document.getElementById('daily-location-select').value = locationValue;
+}
+
+function syncDateRange() {
+    const dateFrom = document.getElementById('raw-date-from').value;
+    if (dateFrom) {
+        const date = new Date(dateFrom);
+        const year = date.getFullYear();
+        const dateTo = `${year}-12-31`;
+        document.getElementById('raw-date-to').value = dateTo;
+    }
+}
+
+function syncYearFromMainDate() {
+    const mainDate = document.getElementById('date-picker').value;
+    if (mainDate) {
+        const date = new Date(mainDate);
+        const year = date.getFullYear();
+        const startOfYear = `${year}-01-01`;
+        const endOfYear = `${year}-12-31`;
+
+        document.getElementById('raw-date-from').value = startOfYear;
+        document.getElementById('raw-date-to').value = endOfYear;
+
+        document.getElementById('daily-month-picker').value = mainDate.substring(0, 7);
+    }
+}
+
+// Nasłuchiwanie zmian
+document.getElementById('location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
+document.getElementById('raw-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
+document.getElementById('daily-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
+document.getElementById('raw-date-from')?.addEventListener('change', syncDateRange);
+document.getElementById('date-picker')?.addEventListener('change', syncYearFromMainDate);
+
 // === TAB 2: DANE SUROWE ===
 document.getElementById('load-raw-data-btn')?.addEventListener('click', loadRawData);
 

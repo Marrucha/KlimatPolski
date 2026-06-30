@@ -197,7 +197,7 @@ def parse_era5_to_records(download_file: str, city_id: int, city_name: str) -> l
                         elif db_col == 'precipitation_6h':
                             val = val * 1000.0
                         elif db_col == 'snowfall_6h':
-                            val = val * 1000.0
+                            pass  # Already in mm, no conversion needed
                         elif db_col == 'cloud_cover_total':
                             if val <= 1.0:
                                 val = val * 100.0
