@@ -3,27 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strefa Czystego Internetu - Moduł Pogodowy (Lubelszczyzna)</title>
+    <title>Klimat Polski - Archiwalne dane meteorologiczne</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
     <div class="container">
-        <!-- Nagłówek -->
-        <header>
-            <h1>🌤️ Pogoda Lubelszczyzny</h1>
-            <p class="subtitle">Archiwalne dane meteorologiczne z ostatnich 50 lat</p>
-        </header>
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="tab-weather">Pogoda bieżąca</button>
-            <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
-            <button class="tab-btn" data-tab="tab-daily-stats">Statystyki dzienne</button>
+        <!-- Górny pasek nawigacyjny (Tytuł + Zakładki w jednym wierszu) -->
+        <div class="top-nav-bar">
+            <div class="brand">
+                <h1 id="main-title">🌤️ Klimat Polski</h1>
+                <p class="subtitle">Archiwalne dane meteorologiczne z ostatnich 76 lat</p>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="tab-daily-kpis">Wskaźniki KPI</button>
+                <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
+                <button class="tab-btn" data-tab="tab-weather">Pogoda bieżąca</button>
+                <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
+            </div>
         </div>
 
         <!-- TAB 1: Pogoda bieżąca (oryginalna) -->
-        <div id="tab-weather" class="tab-content active">
+        <div id="tab-weather" class="tab-content">
             <!-- Panel kontrolny -->
             <section class="controls">
                 <div class="control-group">
@@ -99,21 +100,240 @@
                         </div>
                     </div>
                 </div>
+            </section>
+        </div>
+        <!-- Wspólny panel sterowania dla profilu rocznego (widoczny tylko na zakładkach KPI i Wykres) -->
+        <details class="yearly-controls-details" id="yearly-controls-container" open>
+            <summary><strong id="yearly-controls-label">Ustawienia profilu rocznego</strong>:<span id="yearly-controls-summary-text"> (kliknij, aby zwinąć)</span></summary>
+            <div class="yearly-controls-content">
+                <div class="control-row">
+                    <div class="control-group">
+                        <label for="daily-location-select">Wybierz lokalizację:</label>
+                        <select id="daily-location-select">
+                            <option value="">-- Załaduj lokalizacje --</option>
+                        </select>
+                    </div>
 
-                <div class="stat-card">
-                    <h3>Zachmurzenie</h3>
-                    <div id="cloud-chart" class="chart-container"></div>
-                    <div class="stat-values">
-                        <div class="stat-item">
-                            <span class="label">Średnie:</span>
-                            <span id="cloud-avg" class="value">--</span>%
-                        </div>
+                    <div class="control-group">
+                        <label for="daily-measure-select">Wybierz miarę:</label>
+                        <select id="daily-measure-select">
+                            <option value="temp_avg">Temperatura (średnia)</option>
+                            <option value="temp_max">Temperatura (maksymalna)</option>
+                            <option value="temp_min">Temperatura (minimalna)</option>
+                            <option value="wind_speed_avg">Wiatr (średnia)</option>
+                            <option value="precipitation_sum">Opady (suma)</option>
+                            <option value="cloud_cover_avg">Zachmurzenie</option>
+                        </select>
+                    </div>
+                    
+                    <button id="load-daily-stats-btn" class="btn-primary">Załaduj dane profilu</button>
+                </div>
+
+                <div class="control-row options-row">
+                    <div class="control-group flex-row">
+                        <input type="checkbox" id="show-historical-bg" checked />
+                        <label for="show-historical-bg">Pokaż lata w tle</label>
+                    </div>
+
+                    <div class="control-group flex-row">
+                        <input type="checkbox" id="only-even-years" />
+                        <label for="only-even-years">Tylko lata parzyste</label>
+                    </div>
+                    
+                    <div class="control-group flex-row">
+                        <input type="radio" name="climate-norm" id="show-norm-1991-2020" checked />
+                        <label for="show-norm-1991-2020">Norma 1991-2020</label>
+                    </div>
+
+                    <div class="control-group flex-row">
+                        <input type="radio" name="climate-norm" id="show-norm-1981-2010" />
+                        <label for="show-norm-1981-2010">Norma 1981-2010</label>
+                    </div>
+
+                    <div class="control-group flex-row">
+                        <input type="radio" name="climate-norm" id="show-norm-1980-2000" />
+                        <label for="show-norm-1980-2000">Norma 1980-2000</label>
+                    </div>
+
+                    <div class="control-group flex-row">
+                        <input type="radio" name="climate-norm" id="show-norm-1960-1990" />
+                        <label for="show-norm-1960-1990">Norma 1960-1990</label>
+                    </div>
+
+                    <div class="control-group flex-row">
+                        <input type="radio" name="climate-norm" id="show-norm-none" />
+                        <label for="show-norm-none">Brak normy</label>
+                    </div>
+                </div>
+
+                <div class="control-row options-row">
+                    <div class="control-group flex-row">
+                        <input type="checkbox" id="show-decades" />
+                        <label for="show-decades"><strong>Pokaż jako średnie dekadami</strong></label>
+                    </div>
+                </div>
+
+                <details class="control-row years-row hidden" id="highlight-years-container" open>
+                    <summary><strong id="highlight-years-label">Wyróżnione lata</strong>:<span id="highlight-years-summary-text"> (kliknij, aby zwinąć)</span></summary>
+                    <div id="highlight-years-list" class="checkbox-list">
+                        <!-- Dynamicznie generowane lata -->
+                    </div>
+                </details>
+            </div>
+        </details>
+
+        <!-- TAB 1: Wskaźniki KPI (Profil roczny) -->
+        <div id="tab-daily-kpis" class="tab-content active">
+            <section class="data-table-section">
+                <h2>Profil roczny - Wskaźniki klimatyczne</h2>
+
+                <!-- Wybór okresu analizy wskaźników KPI -->
+                <div class="kpi-controls-row" style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="kpi-period-select"><strong>Zakres analizy wskaźników KPI:</strong></label>
+                    <select id="kpi-period-select" style="padding: 0.4rem 0.75rem; border-radius: 0.375rem; border: 1px solid var(--border-color); font-size: 0.95rem; font-weight: 600; background-color: var(--card-bg); color: var(--text-primary);">
+                        <option value="year">Cały rok</option>
+                        <option value="m1">Styczeń</option>
+                        <option value="m2">Luty</option>
+                        <option value="m3">Marzec</option>
+                        <option value="m4">Kwiecień</option>
+                        <option value="m5">Maj</option>
+                        <option value="m6">Czerwiec</option>
+                        <option value="m7">Lipiec</option>
+                        <option value="m8">Sierpień</option>
+                        <option value="m9">Wrzesień</option>
+                        <option value="m10">Październik</option>
+                        <option value="m11">Listopad</option>
+                        <option value="m12">Grudzień</option>
+                        <option value="q1">I kwartał</option>
+                        <option value="q2">II kwartał</option>
+                        <option value="q3">III kwartał</option>
+                        <option value="q4">IV kwartał</option>
+                        <option value="h1">I półrocze</option>
+                        <option value="h2">II półrocze</option>
+                    </select>
+                </div>
+
+                <!-- Sekcja KPI dla profilu rocznego -->
+                <div class="kpi-container" id="yearly-kpi-container">
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Najwyższa temperatura">Najwyższa temperatura</span>
+                        <span class="kpi-value" id="kpi-temp-max">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Najniższa temperatura">Najniższa temperatura</span>
+                        <span class="kpi-value" id="kpi-temp-min">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Najwyższa średnia dobowa">Najwyższa średnia dobowa</span>
+                        <span class="kpi-value" id="kpi-temp-max-avg">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Najniższa średnia dobowa">Najniższa średnia dobowa</span>
+                        <span class="kpi-value" id="kpi-temp-min-avg">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Średnia okresu">Średnia okresu</span>
+                        <span class="kpi-value" id="kpi-temp-year-avg">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Mediana okresu">Mediana okresu</span>
+                        <span class="kpi-value" id="kpi-temp-median">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Dni upalne (T.Max > 30°C)">Dni upalne (T.Max &gt; 30°C)</span>
+                        <span class="kpi-value" id="kpi-days-hot">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Dni ciepłe (T.Max >= 20°C)">Dni ciepłe (T.Max &ge; 20°C)</span>
+                        <span class="kpi-value" id="kpi-days-cool">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Noce tropikalne (T.Min >= 20°C)">Noce tropikalne (T.Min &ge; 20°C)</span>
+                        <span class="kpi-value" id="kpi-days-tropical">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Dni bardzo mroźne (T.Max <= -10°C)">Dni bardzo mroźne (T.Max &le; -10°C)</span>
+                        <span class="kpi-value" id="kpi-days-glacial">--</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title" data-base-title="Maks. dobowa amplituda">Maks. dobowa amplituda</span>
+                        <span class="kpi-value" id="kpi-max-diurnal-range">--</span>
                     </div>
                 </div>
             </section>
         </div>
 
-        <!-- TAB 2: Dane surowe (weather_data) -->
+        <!-- TAB 2: Wykres porównawczy -->
+        <div id="tab-daily-chart" class="tab-content">
+            <section class="data-table-section">
+                <h2>Profil roczny - Wykres porównawczy</h2>
+                <div class="chart-wrapper">
+                    <canvas id="yearly-comparison-chart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- TAB 3: Pogoda bieżąca -->
+        <div id="tab-weather" class="tab-content">
+            <!-- Panel kontrolny -->
+            <section class="controls">
+                <div class="control-group">
+                    <label for="date-picker">Wybierz datę:</label>
+                    <input type="date" id="date-picker" />
+                </div>
+
+                <div class="control-group">
+                    <label for="location-select">Wybierz lokalizację:</label>
+                    <select id="location-select">
+                        <option value="">-- Załaduj dostępne lokalizacje --</option>
+                    </select>
+                </div>
+
+                <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
+            </section>
+
+            <!-- Mapa -->
+            <div class="stats-section">
+                <div class="map-container-wrapper">
+                    <div id="map" class="map-container"></div>
+                </div>
+
+                <!-- Dane klimatyczne / pogodowe -->
+                <div class="weather-info-card">
+                    <h2 id="location-title">Lokalizacja</h2>
+                    <p class="date-subtitle" id="selected-date-display">Wybierz datę i lokalizację...</p>
+                    
+                    <div class="weather-grid">
+                        <div class="weather-item">
+                            <span class="label">Temperatura średnia</span>
+                            <span class="value" id="temp-avg">--</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="label">Temperatura maksymalna</span>
+                            <span class="value text-danger" id="temp-max">--</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="label">Temperatura minimalna</span>
+                            <span class="value text-primary" id="temp-min">--</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="label">Suma opadów</span>
+                            <span class="value" id="precipitation">--</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="label">Prędkość wiatru</span>
+                            <span class="value" id="wind-speed">--</span>
+                        </div>
+                        <div class="weather-item">
+                            <span class="label">Zachmurzenie średnie</span>
+                            <span class="value" id="cloud-cover">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Dane surowe -->
         <div id="tab-raw-data" class="tab-content">
             <section class="controls">
                 <div class="control-group">
@@ -144,41 +364,6 @@
             </section>
         </div>
 
-        <!-- TAB 3: Statystyki dzienne (daily_stats) -->
-        <div id="tab-daily-stats" class="tab-content">
-            <section class="controls">
-                <div class="control-group">
-                    <label for="daily-location-select">Wybierz lokalizację:</label>
-                    <select id="daily-location-select">
-                        <option value="">-- Załaduj lokalizacje --</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label for="daily-measure-select">Wybierz miarę:</label>
-                    <select id="daily-measure-select">
-                        <option value="temp_avg">Temperatura (średnia)</option>
-                        <option value="temp_min_max">Temperatura (min/max)</option>
-                        <option value="wind_speed_avg">Wiatr (średnia)</option>
-                        <option value="precipitation_sum">Opady</option>
-                        <option value="cloud_cover_avg">Zachmurzenie</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label for="daily-month-picker">Wybierz miesiąc:</label>
-                    <input type="month" id="daily-month-picker" />
-                </div>
-
-                <button id="load-daily-stats-btn" class="btn-primary">Załaduj dane</button>
-            </section>
-
-            <section class="data-table-section">
-                <h2>Statystyki dzienne</h2>
-                <div id="daily-stats-chart" class="chart-container"></div>
-            </section>
-        </div>
-
         <!-- Status ładowania -->
         <div id="loading" class="loading hidden">
             <p>⏳ Ładowanie danych...</p>
@@ -193,6 +378,7 @@
 
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/api.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/map.js"></script>

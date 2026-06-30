@@ -75,6 +75,9 @@ async function loadWeatherData() {
         const location = JSON.parse(locationJson);
         currentLocation = location;
 
+        const titleEl = document.getElementById('main-title');
+        if (titleEl) titleEl.textContent = `🌤️ Klimat - ${location.name}`;
+
         const endDate = new Date(dateStr);
         const startDate = new Date(endDate);
         startDate.setDate(startDate.getDate() - 1);
@@ -229,6 +232,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
         document.getElementById(tabId).classList.add('active');
         btn.classList.add('active');
+
+        // Pokaż/ukryj panel sterowania dla profilu rocznego
+        const isYearlyTab = (tabId === 'tab-daily-kpis' || tabId === 'tab-daily-chart');
+        const controlsContainer = document.getElementById('yearly-controls-container');
+        if (controlsContainer) {
+            controlsContainer.classList.toggle('hidden', !isYearlyTab);
+        }
+
+        // Odśwież wykres po przełączeniu, aby uniknąć problemów z szerokością canvas
+        if (tabId === 'tab-daily-chart') {
+            setTimeout(() => {
+                if (loadedDailyStatsData) {
+                    updateYearlyChart();
+                }
+            }, 50);
+        }
     });
 });
 
@@ -247,6 +266,16 @@ async function initializeLocationSelects() {
             });
         }
     });
+
+    // Automatycznie załaduj dane dla Warszawy na start
+    const dailySelect = document.getElementById('daily-location-select');
+    if (dailySelect) {
+        const opt = Array.from(dailySelect.options).find(o => o.textContent === 'Warszawa');
+        if (opt) {
+            dailySelect.value = opt.value;
+            loadDailyStatsProfile();
+        }
+    }
 }
 
 // === TAB 2: DANE SUROWE ===
@@ -298,67 +327,520 @@ function displayRawDataTable(records) {
     container.innerHTML = html;
 }
 
-// === TAB 3: STATYSTYKI DZIENNE ===
-document.getElementById('load-daily-stats-btn')?.addEventListener('click', loadDailyStats);
+// === TAB 3: PROFIL ROCZNY (PORÓWNANIE LAT) ===
+let loadedDailyStatsData = null;
 
-async function loadDailyStats() {
+document.getElementById('load-daily-stats-btn')?.addEventListener('click', loadDailyStatsProfile);
+
+// Reaguj na zmianę opcji
+['daily-measure-select', 'show-historical-bg', 'show-norm-1991-2020', 'show-norm-1981-2010', 'show-norm-1980-2000', 'show-norm-1960-1990', 'show-norm-none', 'show-decades'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+        if (id === 'show-decades') {
+            handleDecadesToggle();
+        }
+        updateYearlyChart();
+    });
+});
+
+document.getElementById('only-even-years')?.addEventListener('change', () => {
+    setupHighlightYearsList();
+    updateYearlyChart();
+});
+
+document.getElementById('yearly-controls-container')?.addEventListener('toggle', updateYearlyControlsSummary);
+document.getElementById('daily-location-select')?.addEventListener('change', loadDailyStatsProfile);
+document.getElementById('kpi-period-select')?.addEventListener('change', updateYearlyChart);
+
+async function loadDailyStatsProfile() {
     try {
         const locJson = document.getElementById('daily-location-select').value;
-        const measure = document.getElementById('daily-measure-select').value;
-        const month = document.getElementById('daily-month-picker').value;
-
-        if (!locJson || !month) {
-            showError('Wybierz lokalizację i miesiąc');
+        if (!locJson) {
+            showError('Wybierz lokalizację');
             return;
         }
 
         showLoading(true);
         showError('');
 
-        const [year, monthNum] = month.split('-');
-        const startDate = `${year}-${monthNum}-01`;
-        const dateObj = new Date(year, parseInt(monthNum), 0);
-        const lastDay = dateObj.getDate();
-        const endDate = `${year}-${monthNum}-${String(lastDay).padStart(2, '0')}`;
-
         const loc = JSON.parse(locJson);
-        const response = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/daily_stats?city_id=eq.${loc.city_id}&date=gte.${startDate}&date=lte.${endDate}&order=date.asc&limit=10000`,
-            {headers: {'apikey': API_CONFIG.SUPABASE_KEY, 'Content-Type': 'application/json'}}
-        );
+        
+        const titleEl = document.getElementById('main-title');
+        if (titleEl) titleEl.textContent = `🌤️ Klimat - ${loc.name}`;
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const stats = await response.json();
-        drawDailyStatsChart(stats, measure);
+        loadedDailyStatsData = await getAllDailyStats(loc.city_id);
+
+        if (!loadedDailyStatsData || loadedDailyStatsData.length === 0) {
+            showError('Brak danych statystyk dziennych dla tej lokalizacji.');
+            showLoading(false);
+            return;
+        }
+
+        const years = Array.from(new Set(loadedDailyStatsData.map(r => new Date(r.date).getFullYear()))).sort();
+        window.loadedAvailableYears = years;
+
+        // Ustaw stan początkowy opcji dekadowych
+        handleDecadesToggle();
+
+        // Wyciągamy lata najpierw
+        const measure = document.getElementById('daily-measure-select')?.value || 'temp_avg';
+        const config = {
+            showHistoricalBg: document.getElementById('show-historical-bg')?.checked ?? true,
+            showNorm1991_2020: document.getElementById('show-norm-1991-2020')?.checked ?? true,
+            showNorm1981_2010: document.getElementById('show-norm-1981-2010')?.checked ?? false,
+            showNorm1980_2000: document.getElementById('show-norm-1980-2000')?.checked ?? false,
+            showNorm1960_1990: document.getElementById('show-norm-1960-1990')?.checked ?? false,
+            onlyEvenYears: document.getElementById('only-even-years')?.checked ?? false,
+            showDecades: document.getElementById('show-decades')?.checked ?? false,
+            highlightedYears: [2026, 2025, 2024, 2023]
+        };
+        
+        drawYearlyComparisonChart('yearly-comparison-chart', loadedDailyStatsData, measure, config);
+
+        // Skonfiguruj listę lat do wyróżnienia
+        setupHighlightYearsList();
+
+        // Narysuj ostatecznie z wybranymi filtrami
+        updateYearlyChart();
+
     } catch (error) {
-        showError(`Błąd: ${error.message}`);
+        showError(`Błąd przy ładowaniu profilu rocznego: ${error.message}`);
+        console.error(error);
     } finally {
         showLoading(false);
     }
 }
 
-function drawDailyStatsChart(stats, measure) {
-    if (!stats || stats.length === 0) {
-        document.getElementById('daily-stats-chart').innerHTML = '<p class="placeholder">Brak danych</p>';
+function handleDecadesToggle() {
+    setupHighlightYearsList();
+}
+
+function setupHighlightYearsList() {
+    const listContainer = document.getElementById('highlight-years-list');
+    const container = document.getElementById('highlight-years-container');
+    const labelEl = document.getElementById('highlight-years-label');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    
+    // Dodaj obsługę zdarzenia toggle jeśli jeszcze jej nie ma
+    if (container && !container.dataset.hasToggleListener) {
+        container.addEventListener('toggle', updateSummaryText);
+        container.dataset.hasToggleListener = 'true';
+    }
+    
+    const showDecades = document.getElementById('show-decades')?.checked ?? false;
+    const years = window.loadedAvailableYears || [];
+
+    if (years.length === 0) {
+        container?.classList.add('hidden');
         return;
     }
 
-    const values = stats.map(s => s[measure] || 0);
-    const maxVal = Math.max(...values, 1);
-    let svg = `<svg viewBox="0 0 ${Math.max(400, values.length * 20)} 250" style="width: 100%; height: 300px;">`;
+    container?.classList.remove('hidden');
 
-    values.forEach((v, i) => {
-        const x = 40 + i * 15;
-        const y = 200 - (v / maxVal) * 180;
-        const nextX = 40 + (i + 1) * 15;
-        const nextY = i < values.length - 1 ? 200 - (values[i+1] / maxVal) * 180 : y;
+    if (showDecades) {
+        if (labelEl) labelEl.textContent = 'Widoczne dekady:';
+        
+        // Wyciągamy unikalne dekady
+        const decades = new Set();
+        years.forEach(year => {
+            const decadeStart = Math.floor(year / 10) * 10;
+            decades.add(`${decadeStart}s`);
+        });
 
-        if (i === 0) svg += `<polyline points="${x},${y}`;
-        else svg += ` ${x},${y}`;
+        // Tworzymy checkboxy dla dekad (domyślnie wszystkie zaznaczone)
+        Array.from(decades).sort().reverse().forEach(decade => {
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `visible-decade-${decade}`;
+            checkbox.value = decade;
+            checkbox.checked = true;
+            checkbox.addEventListener('change', updateYearlyChart);
+
+            const label = document.createElement('label');
+            label.htmlFor = `visible-decade-${decade}`;
+            label.textContent = decade.replace('s', 's.');
+
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            listContainer.appendChild(item);
+        });
+    } else {
+        if (labelEl) labelEl.textContent = 'Wyróżnione lata:';
+
+        const defaultHighlighted = [2026, 2025, 2024, 2023];
+
+        years.forEach(year => {
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `highlight-year-${year}`;
+            checkbox.value = year;
+            checkbox.checked = defaultHighlighted.includes(year);
+            checkbox.addEventListener('change', (e) => {
+                // Ograniczenie do max 4 zaznaczonych lat
+                const checked = listContainer.querySelectorAll('input[type="checkbox"]:checked');
+                if (checked.length > 4) {
+                    checkbox.checked = false;
+                    alert('Możesz wyróżnić maksymalnie 4 lata jednocześnie.');
+                    return;
+                }
+                updateYearlyChart();
+            });
+
+            const label = document.createElement('label');
+            label.htmlFor = `highlight-year-${year}`;
+            label.textContent = year;
+
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            listContainer.appendChild(item);
+        });
+    }
+}
+
+function updateYearlyChart() {
+    if (!loadedDailyStatsData) return;
+
+    const measure = document.getElementById('daily-measure-select')?.value || 'temp_avg';
+    const showHistoricalBg = document.getElementById('show-historical-bg')?.checked ?? true;
+    const showNorm1991_2020 = document.getElementById('show-norm-1991-2020')?.checked ?? true;
+    const showNorm1981_2010 = document.getElementById('show-norm-1981-2010')?.checked ?? false;
+    const showNorm1980_2000 = document.getElementById('show-norm-1980-2000')?.checked ?? false;
+    const showNorm1960_1990 = document.getElementById('show-norm-1960-1990')?.checked ?? false;
+    const onlyEvenYears = document.getElementById('only-even-years')?.checked ?? false;
+    const showDecades = document.getElementById('show-decades')?.checked ?? false;
+
+    // Zbierz zaznaczone lata / widoczne dekady z checkboxów
+    const highlightedYears = [];
+    const visibleDecades = [];
+    const checkboxes = document.querySelectorAll('#highlight-years-list input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            if (showDecades) {
+                visibleDecades.push(cb.value);
+            } else {
+                highlightedYears.push(parseInt(cb.value));
+            }
+        }
     });
 
-    svg += `" fill="none" stroke="#2563eb" stroke-width="2"/></svg>`;
-    document.getElementById('daily-stats-chart').innerHTML = svg;
+    const config = {
+        showHistoricalBg,
+        showNorm1991_2020,
+        showNorm1981_2010,
+        showNorm1980_2000,
+        showNorm1960_1990,
+        onlyEvenYears,
+        showDecades,
+        highlightedYears,
+        visibleDecades
+    };
+
+    // Zaktualizuj tekst podsumowania w summary
+    updateSummaryText();
+    updateYearlyControlsSummary();
+
+    // --- OBLICZANIE KPI ---
+    let filteredRecordsForKpi = [];
+    let numYearsForKpi = 0;
+    const availableYearsSet = new Set(window.loadedAvailableYears || []);
+
+    if (showDecades) {
+        filteredRecordsForKpi = loadedDailyStatsData.filter(r => {
+            const year = new Date(r.date).getFullYear();
+            if (year === 2026) return false; // Pomijamy niepełny rok 2026 w średnich dekadowych
+            if (!availableYearsSet.has(year)) return false;
+            if (onlyEvenYears && year % 2 !== 0) return false;
+            const decade = Math.floor(year / 10) * 10 + 's';
+            return visibleDecades.includes(decade);
+        });
+        numYearsForKpi = new Set(filteredRecordsForKpi.map(r => new Date(r.date).getFullYear())).size;
+    } else {
+        filteredRecordsForKpi = loadedDailyStatsData.filter(r => {
+            const year = new Date(r.date).getFullYear();
+            if (onlyEvenYears && year % 2 !== 0) return false;
+            return highlightedYears.includes(year);
+        });
+        numYearsForKpi = highlightedYears.length;
+    }
+
+updateKPIs(filteredRecordsForKpi, numYearsForKpi, showDecades);
+
+    drawYearlyComparisonChart('yearly-comparison-chart', loadedDailyStatsData, measure, config);
+}
+
+function updateKPIs(filteredRecords, numYears, showDecades) {
+    const kpiContainer = document.getElementById('yearly-kpi-container');
+    if (!kpiContainer) return;
+
+    if (!filteredRecords || filteredRecords.length === 0 || numYears === 0) {
+        kpiContainer.classList.add('hidden');
+        return;
+    }
+
+    kpiContainer.classList.remove('hidden');
+
+    // 1. Odczytaj okres i zaktualizuj tytuły
+    const periodSelect = document.getElementById('kpi-period-select');
+    const period = periodSelect ? periodSelect.value : 'year';
+    const periodText = periodSelect ? periodSelect.options[periodSelect.selectedIndex]?.text : 'Cały rok';
+
+    document.querySelectorAll('.kpi-title').forEach(el => {
+        const base = el.getAttribute('data-base-title');
+        if (base) {
+            el.textContent = `${base} (${periodText})`;
+        }
+    });
+
+    // 2. Przefiltruj rekordy dla wybranego okresu
+    const filterRecordsByPeriod = (records, p) => {
+        if (p === 'year') return records;
+        return records.filter(r => {
+            const date = new Date(r.date);
+            const month = date.getMonth(); // 0-11
+            
+            if (p.startsWith('m')) {
+                const mNum = parseInt(p.substring(1)) - 1;
+                return month === mNum;
+            }
+            if (p === 'q1') return month >= 0 && month <= 2;
+            if (p === 'q2') return month >= 3 && month <= 5;
+            if (p === 'q3') return month >= 6 && month <= 8;
+            if (p === 'q4') return month >= 9 && month <= 11;
+            if (p === 'h1') return month >= 0 && month <= 5;
+            if (p === 'h2') return month >= 6 && month <= 11;
+            
+            return true;
+        });
+    };
+
+    const periodRecords = filterRecordsByPeriod(filteredRecords, period);
+
+    // 3. Grupujemy rekordy według roku lub dekady
+    const grouped = {};
+    periodRecords.forEach(r => {
+        const year = new Date(r.date).getFullYear();
+        const key = showDecades ? (Math.floor(year / 10) * 10 + 's') : year;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(r);
+    });
+
+    const calculateMedian = (arr) => {
+        if (arr.length === 0) return null;
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 !== 0 
+            ? sorted[mid] 
+            : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+
+    const kpis = {
+        tempMax: {},
+        tempMin: {},
+        tempMaxAvg: {},
+        tempMinAvg: {},
+        tempYearAvg: {},
+        tempMedian: {},
+        daysHot: {},
+        daysCool: {},
+        daysTropical: {},
+        daysGlacial: {},
+        maxDiurnalRange: {}
+    };
+
+    Object.keys(grouped).forEach(key => {
+        const records = grouped[key];
+        const validMax = records.map(r => r.temp_max).filter(v => v !== null && v !== undefined);
+        const validMin = records.map(r => r.temp_min).filter(v => v !== null && v !== undefined);
+        const validAvg = records.map(r => r.temp_avg).filter(v => v !== null && v !== undefined);
+
+        kpis.tempMax[key] = validMax.length > 0 ? Math.max(...validMax).toFixed(1) + '°C' : '--';
+        kpis.tempMin[key] = validMin.length > 0 ? Math.min(...validMin).toFixed(1) + '°C' : '--';
+        kpis.tempMaxAvg[key] = validAvg.length > 0 ? Math.max(...validAvg).toFixed(1) + '°C' : '--';
+        kpis.tempMinAvg[key] = validAvg.length > 0 ? Math.min(...validAvg).toFixed(1) + '°C' : '--';
+        kpis.tempYearAvg[key] = validAvg.length > 0 ? (validAvg.reduce((a, b) => a + b, 0) / validAvg.length).toFixed(1) + '°C' : '--';
+        
+        const med = calculateMedian(validAvg);
+        kpis.tempMedian[key] = med !== null ? med.toFixed(1) + '°C' : '--';
+
+        const yearsCount = showDecades ? (new Set(records.map(r => new Date(r.date).getFullYear()))).size : 1;
+
+        const formatPolishUnit = (val, type) => {
+            if (val % 1 !== 0) {
+                const formatted = val.toFixed(1);
+                if (type === 'day') return `${formatted} dnia/r`;
+                if (type === 'night') return `${formatted} nocy/r`;
+                return `${formatted} ${type}`;
+            }
+            const intVal = Math.round(val);
+            if (type === 'day') {
+                if (intVal === 1) return '1 dzień';
+                return `${intVal} dni`;
+            }
+            if (type === 'night') {
+                if (intVal === 1) return '1 noc';
+                const lastDigit = intVal % 10;
+                const lastTwo = intVal % 100;
+                if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 10 || lastTwo > 20)) {
+                    return `${intVal} noce`;
+                }
+                return `${intVal} nocy`;
+            }
+            return val;
+        };
+
+        const hotDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max > 30).length;
+        kpis.daysHot[key] = formatPolishUnit(hotDays / yearsCount, 'day');
+
+        const warmDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max >= 20).length;
+        kpis.daysCool[key] = formatPolishUnit(warmDays / yearsCount, 'day');
+
+        const tropicalNights = records.filter(r => r.temp_min !== null && r.temp_min !== undefined && r.temp_min >= 20).length;
+        kpis.daysTropical[key] = formatPolishUnit(tropicalNights / yearsCount, 'night');
+
+        const glacialDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max <= -10).length;
+        kpis.daysGlacial[key] = formatPolishUnit(glacialDays / yearsCount, 'day');
+
+        const diurnalRanges = records
+            .filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_min !== null && r.temp_min !== undefined)
+            .map(r => r.temp_max - r.temp_min);
+        kpis.maxDiurnalRange[key] = diurnalRanges.length > 0 ? Math.max(...diurnalRanges).toFixed(1) + '°C' : '--';
+    });
+
+    const renderKpiRows = (kpiMap) => {
+        return Object.keys(kpiMap)
+            .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+            .map(key => {
+                const label = showDecades ? key.replace('s', 's.') : key;
+                return `<div class="kpi-year-row">
+                    <span class="year-label">${label}:</span>
+                    <span class="year-val">${kpiMap[key]}</span>
+                </div>`;
+            }).join('');
+    };
+
+    document.getElementById('kpi-temp-max').innerHTML = renderKpiRows(kpis.tempMax);
+    document.getElementById('kpi-temp-min').innerHTML = renderKpiRows(kpis.tempMin);
+    document.getElementById('kpi-temp-max-avg').innerHTML = renderKpiRows(kpis.tempMaxAvg);
+    document.getElementById('kpi-temp-min-avg').innerHTML = renderKpiRows(kpis.tempMinAvg);
+    document.getElementById('kpi-temp-year-avg').innerHTML = renderKpiRows(kpis.tempYearAvg);
+    document.getElementById('kpi-temp-median').innerHTML = renderKpiRows(kpis.tempMedian);
+    document.getElementById('kpi-days-hot').innerHTML = renderKpiRows(kpis.daysHot);
+    document.getElementById('kpi-days-cool').innerHTML = renderKpiRows(kpis.daysCool);
+    document.getElementById('kpi-days-tropical').innerHTML = renderKpiRows(kpis.daysTropical);
+    document.getElementById('kpi-days-glacial').innerHTML = renderKpiRows(kpis.daysGlacial);
+    document.getElementById('kpi-max-diurnal-range').innerHTML = renderKpiRows(kpis.maxDiurnalRange);
+}
+
+function updateSummaryText() {
+    const container = document.getElementById('highlight-years-container');
+    const textEl = document.getElementById('highlight-years-summary-text');
+    if (!container || !textEl) return;
+
+    if (container.open) {
+        textEl.textContent = ' (kliknij, aby zwinąć)';
+        textEl.style.fontWeight = 'normal';
+        textEl.style.color = 'var(--text-secondary)';
+    } else {
+        const checkedLabels = [];
+        const checkboxes = document.querySelectorAll('#highlight-years-list input[type="checkbox"]:checked');
+        checkboxes.forEach(cb => {
+            const label = document.querySelector(`label[for="${cb.id}"]`)?.textContent;
+            if (label) checkedLabels.push(label);
+        });
+        
+        if (checkedLabels.length > 0) {
+            textEl.textContent = ' ' + checkedLabels.join(', ');
+            textEl.style.fontWeight = 'bold';
+            textEl.style.color = 'var(--primary-color)';
+        } else {
+            textEl.textContent = ' brak zaznaczonych';
+            textEl.style.fontWeight = 'normal';
+            textEl.style.color = 'var(--text-secondary)';
+        }
+    }
+}
+
+function updateYearlyControlsSummary() {
+    const container = document.getElementById('yearly-controls-container');
+    const textEl = document.getElementById('yearly-controls-summary-text');
+    if (!container || !textEl) return;
+
+    if (container.open) {
+        textEl.textContent = ' (kliknij, aby zwinąć)';
+        textEl.style.fontWeight = 'normal';
+        textEl.style.color = 'var(--text-secondary)';
+    } else {
+        // Lokalizacja
+        const locSelect = document.getElementById('daily-location-select');
+        let city = 'Brak lokalizacji';
+        if (locSelect && locSelect.value) {
+            try {
+                const locObj = JSON.parse(locSelect.value);
+                city = locObj.name;
+            } catch(e) {}
+        }
+        const cityHtml = `<span class="summary-city">${city}</span>`;
+
+        // Miara
+        const measureSelect = document.getElementById('daily-measure-select');
+        const measure = measureSelect ? measureSelect.options[measureSelect.selectedIndex]?.text : '--';
+        const measureHtml = `<span class="summary-measure">${measure}</span>`;
+
+        // Norma
+        let norm = 'Brak normy';
+        ['show-norm-1991-2020', 'show-norm-1981-2010', 'show-norm-1980-2000', 'show-norm-1960-1990'].forEach(id => {
+            if (document.getElementById(id)?.checked) {
+                const label = document.querySelector(`label[for="${id}"]`)?.textContent;
+                if (label) norm = label;
+            }
+        });
+        const normHtml = `<span class="summary-norm">${norm}</span>`;
+
+        // Lata / Dekady (kolorowanie pasujące do wykresu)
+        const showDecades = document.getElementById('show-decades')?.checked ?? false;
+        const selectedItems = [];
+        const checkboxes = document.querySelectorAll('#highlight-years-list input[type="checkbox"]:checked');
+        checkboxes.forEach(cb => {
+            const label = document.querySelector(`label[for="${cb.id}"]`)?.textContent;
+            if (label) selectedItems.push({ value: cb.value, text: label });
+        });
+
+        // Sortowanie malejąco
+        selectedItems.sort((a, b) => b.value.localeCompare(a.value, undefined, { numeric: true }));
+
+        let modeHtml = '';
+        if (showDecades) {
+            const decadeColors = {
+                "2020s": '#dc2626', "2010s": '#ea580c', "2000s": '#d97706', "1990s": '#16a34a',
+                "1980s": '#2563eb', "1970s": '#4f46e5', "1960s": '#9333ea', "1950s": '#db2777'
+            };
+            const coloredItems = selectedItems.map(item => {
+                const color = decadeColors[item.value] || '#6b7280';
+                return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
+            });
+            modeHtml = `Dekady: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
+        } else {
+            const yearColors = ['#dc2626', '#ea580c', '#d97706', '#16a34a'];
+            const coloredItems = selectedItems.map((item, idx) => {
+                const color = yearColors[idx] || '#2563eb';
+                return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
+            });
+            modeHtml = `Lata: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
+        }
+
+        textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; ${measureHtml} &nbsp; | &nbsp; ${normHtml} &nbsp; | &nbsp; <strong>${modeHtml}</strong>`;
+        textEl.style.fontWeight = 'normal';
+        textEl.style.color = 'var(--text-secondary)';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', initializeLocationSelects);
+
+

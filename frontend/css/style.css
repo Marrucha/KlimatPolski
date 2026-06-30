@@ -32,23 +32,30 @@ body {
     padding: 2rem 1rem;
 }
 
-/* === HEADER === */
-header {
-    text-align: center;
-    margin-bottom: 3rem;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 2rem;
+
+
+/* === TOP NAV BAR === */
+.top-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
-header h1 {
-    font-size: 2.5rem;
+.top-nav-bar h1 {
+    font-size: 1.5rem !important;
+    margin: 0;
     color: var(--primary-color);
-    margin-bottom: 0.5rem;
 }
 
-header .subtitle {
-    font-size: 1.1rem;
+.top-nav-bar .subtitle {
+    font-size: 0.8rem !important;
     color: var(--text-secondary);
+    margin: 0 !important;
 }
 
 /* === KONTROLKI === */
@@ -237,23 +244,22 @@ header .subtitle {
 /* === TABS === */
 .tabs {
     display: flex;
-    gap: 0;
-    margin-bottom: 2rem;
+    gap: 0.25rem;
     background-color: var(--card-bg);
     border-radius: 0.5rem;
-    padding: 0.5rem;
+    padding: 0.35rem;
     border: 1px solid var(--border-color);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin: 0;
 }
 
 .tab-btn {
-    flex: 1;
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     background: transparent;
     border: none;
     border-radius: 0.375rem;
     color: var(--text-secondary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -359,3 +365,258 @@ footer {
         height: 300px;
     }
 }
+
+/* === PROFILE ROCZNY (YEARLY COMPARISON) === */
+details.yearly-controls-details {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    width: 100%;
+}
+
+details.yearly-controls-details summary {
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    font-size: 0.95rem;
+    text-align: left;
+}
+
+details.yearly-controls-details summary:hover {
+    color: var(--primary-color);
+}
+
+details.yearly-controls-details[open] {
+    padding-bottom: 1rem;
+}
+
+details.yearly-controls-details[open] summary {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.yearly-controls-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.control-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.control-row.options-row {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+}
+
+.control-group.flex-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-group.flex-row input[type="checkbox"] {
+    min-width: auto;
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+}
+
+.control-group.flex-row label {
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.years-row {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.years-row label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--bg-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--border-color);
+}
+
+.checkbox-item input {
+    cursor: pointer;
+}
+
+.checkbox-item label {
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.disabled-option {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* === KPI SECTION (PROFIL ROCZNY) === */
+.kpi-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+    margin-top: 1rem;
+}
+
+.kpi-card {
+    background-color: var(--card-bg);
+    padding: 1.2rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-title {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.kpi-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+}
+
+.kpi-year-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    border-bottom: 1px dashed var(--border-color);
+    padding: 0.18rem 0;
+}
+
+.kpi-year-row:last-child {
+    border-bottom: none;
+}
+
+.kpi-year-row .year-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.kpi-year-row .year-val {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* === COLLAPSIBLE DETAILS === */
+details.control-row {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    width: 100%;
+}
+
+details.control-row summary {
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    font-size: 0.95rem;
+}
+
+details.control-row summary:hover {
+    color: var(--primary-color);
+}
+
+details.control-row[open] {
+    padding-bottom: 1rem;
+}
+
+details.control-row[open] summary {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.summary-city {
+    border: 1px solid var(--primary-color);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    background-color: rgba(37, 99, 235, 0.05);
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.summary-measure {
+    border: 1px solid var(--text-secondary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0 0.2rem;
+}
+
+.summary-norm {
+    text-decoration: underline;
+    text-decoration-color: var(--text-primary);
+    text-decoration-style: solid;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+
