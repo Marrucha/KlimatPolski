@@ -55,7 +55,7 @@ def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list
     months = [f"{m:02d}" for m in range(1, 13)]
     days = [f"{d:02d}" for d in range(1, 32)]
 
-    hours = ['00:00', '06:00', '12:00', '18:00']
+    hours = ['03:00', '09:00', '15:00', '21:00']
 
     request = {
         'product_type': 'reanalysis',
