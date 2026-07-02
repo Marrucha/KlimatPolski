@@ -86,7 +86,8 @@ jobs:
             --start-year "${{ github.event.inputs.start_year }}" \
             --end-year "${{ github.event.inputs.end_year }}" \
             --chunk-size 1 \
-            --workers "${{ github.event.inputs.workers }}"
+            --workers "${{ github.event.inputs.workers }}" \
+            --hours "00:00,06:00,12:00,18:00"
 
       - name: Upload logs on failure
         if: failure()

@@ -44,7 +44,7 @@ def setup_cds_credentials():
         logger.info("✓ Zapisano CDS credentials")
 
 
-def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list, city_name: str) -> str:
+def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list, city_name: str, hours: list = None) -> str:
     """Pobiera ERA5 dla okresu (np. 2-letni chunk)."""
     logger.info(f"  {start_year}-{end_year}...")
 
@@ -55,7 +55,8 @@ def fetch_era5_chunk(start_year: int, end_year: int, variables: list, bbox: list
     months = [f"{m:02d}" for m in range(1, 13)]
     days = [f"{d:02d}" for d in range(1, 32)]
 
-    hours = ['03:00', '09:00', '15:00', '21:00']
+    if hours is None:
+        hours = ['00:00', '06:00', '12:00', '18:00']
 
     request = {
         'product_type': 'reanalysis',
@@ -247,7 +248,7 @@ def get_cities_from_db(supabase) -> list:
     return cities
 
 
-def fetch_city_data(city, start_year, end_year, chunk_size, variables):
+def fetch_city_data(city, start_year, end_year, chunk_size, variables, hours=None):
     """Pobiera dane dla jednego miasta - chunk po chunk."""
     city_id = city['id']
     city_name = city['name']
@@ -270,7 +271,7 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
         download_file = None
 
         try:
-            download_file = fetch_era5_chunk(year, chunk_end, variables, bbox, city_name)
+            download_file = fetch_era5_chunk(year, chunk_end, variables, bbox, city_name, hours=hours)
             time.sleep(1)
 
             records = parse_era5_to_records(download_file, city_id, city_name)
@@ -299,10 +300,10 @@ def fetch_city_data(city, start_year, end_year, chunk_size, variables):
     return total
 
 
-def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 1, max_workers: int = 2):
+def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: int = 1, max_workers: int = 2, hours: list = None):
     """Pobiera dane ERA5 dla miast równolegle, rok po roku."""
     logger.info("=" * 60)
-    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} rok, workers: {max_workers})")
+    logger.info(f"START: Bulk fetch ERA5: {start_year}-{end_year} (chunk: {chunk_size} rok, workers: {max_workers}, hours: {hours})")
     logger.info("=" * 60)
 
     setup_cds_credentials()
@@ -336,7 +337,7 @@ def bulk_fetch_era5(start_year: int = 1950, end_year: int = 2026, chunk_size: in
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(fetch_city_data, city, start_year, end_year, chunk_size, variables): city
+            executor.submit(fetch_city_data, city, start_year, end_year, chunk_size, variables, hours=hours): city
             for city in cities
         }
 
@@ -360,6 +361,7 @@ if __name__ == '__main__':
     parser.add_argument('--end-year', type=int, default=2026, help='End year')
     parser.add_argument('--chunk-size', type=int, default=1, help='Chunk size in years')
     parser.add_argument('--workers', '-w', type=int, default=2, help='Number of parallel workers (default: 2)')
+    parser.add_argument('--hours', default='00:00,06:00,12:00,18:00', help='Comma-separated hours to fetch')
 
     args = parser.parse_args()
 
@@ -368,6 +370,7 @@ if __name__ == '__main__':
     chunk_size = args.chunk_size
     workers = args.workers
     city_id_filter = args.city_id if args.city_id != 'all' else None
+    hours_list = [h.strip() for h in args.hours.split(',')]
 
     if city_id_filter:
         setup_cds_credentials()
@@ -390,11 +393,11 @@ if __name__ == '__main__':
                     'snowfall',
                     '2m_dewpoint_temperature'
                 ]
-                total = fetch_city_data(city, start_year, end_year, chunk_size, variables)
+                total = fetch_city_data(city, start_year, end_year, chunk_size, variables, hours=hours_list)
                 logger.info(f"\n✓ Pobrano dla {city['name']}: {total} rekordów")
             else:
                 logger.error(f"Miasto o ID {city_id_filter} nie znalezione")
         else:
             logger.error("Nie można się połączyć z Supabase")
     else:
-        bulk_fetch_era5(start_year=start_year, end_year=end_year, chunk_size=chunk_size, max_workers=workers)
+        bulk_fetch_era5(start_year=start_year, end_year=end_year, chunk_size=chunk_size, max_workers=workers, hours=hours_list)
