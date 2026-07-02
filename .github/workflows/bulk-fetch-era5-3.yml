@@ -45,6 +45,10 @@ on:
         description: 'Liczba równoległych wątków (domyślnie 2)'
         required: true
         default: '2'
+      hours:
+        description: 'Godziny pomiarów rozdzielone przecinkiem (np. 00:00,06:00,12:00,18:00)'
+        required: true
+        default: '00:00,06:00,12:00,18:00'
 
 jobs:
   bulk-fetch:
@@ -87,7 +91,7 @@ jobs:
             --end-year "${{ github.event.inputs.end_year }}" \
             --chunk-size 1 \
             --workers "${{ github.event.inputs.workers }}" \
-            --hours "00:00,06:00,12:00,18:00"
+            --hours "${{ github.event.inputs.hours }}"
 
       - name: Upload logs on failure
         if: failure()
