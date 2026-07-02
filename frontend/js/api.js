@@ -83,50 +83,7 @@ async function getDailyStats(cityId, date) {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const data = await response.json();
-        if (data.length > 0) {
-            return data[0];
-        }
-
-        // Biegowa agregacja z weather_data na wypadek braku wpisu w daily_stats
-        const wQuery = `city_id=eq.${cityId}&forecast_time=gte.${date}T00:00:00Z&forecast_time=lte.${date}T23:59:59Z`;
-        const wResponse = await fetch(
-            `${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?${wQuery}`,
-            {
-                headers: {
-                    'apikey': API_CONFIG.SUPABASE_KEY,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (wResponse.ok) {
-            const wData = await wResponse.json();
-            if (wData && wData.length > 0) {
-                const temps = wData.map(x => x.temperature_2m).filter(v => v !== null && v !== undefined);
-                const windSpeeds = wData.map(x => x.wind_speed_10m).filter(v => v !== null && v !== undefined);
-                const windDirs = wData.map(x => x.wind_direction_10m).filter(v => v !== null && v !== undefined);
-                const precips = wData.map(x => x.precipitation_6h).filter(v => v !== null && v !== undefined);
-                const clouds = wData.map(x => x.cloud_cover_total).filter(v => v !== null && v !== undefined);
-
-                let dominantWind = null;
-                if (windDirs.length > 0) {
-                    dominantWind = windDirs.reduce((a, b) => a + b, 0) / windDirs.length;
-                }
-
-                return {
-                    date: date,
-                    temp_min: temps.length > 0 ? Math.min(...temps) : null,
-                    temp_max: temps.length > 0 ? Math.max(...temps) : null,
-                    temp_avg: temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : null,
-                    wind_speed_avg: windSpeeds.length > 0 ? windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length : null,
-                    wind_speed_max: windSpeeds.length > 0 ? Math.max(...windSpeeds) : null,
-                    wind_direction_dominant: dominantWind,
-                    precipitation_sum: precips.length > 0 ? precips.reduce((a, b) => a + b, 0) : 0.0,
-                    cloud_cover_avg: clouds.length > 0 ? clouds.reduce((a, b) => a + b, 0) / clouds.length : null
-                };
-            }
-        }
-        return null;
+        return data.length > 0 ? data[0] : null;
     } catch (error) {
         console.error('Błąd przy pobieraniu statystyk dziennych:', error);
         return null;
