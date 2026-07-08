@@ -209,6 +209,44 @@ class SupabaseClient:
             logger.error(f"✗ Błąd przy insercie daily_stats: {e}")
             return 0
 
+    def upsert_daily_stats_direct(self, stats: List[Dict], batch_size: int = 500) -> int:
+        """
+        Wstawia statystyki dzienne, które mają już ustawione city_id
+        (bez mapowania po lat/lon). Używane przy przeliczaniu daily_stats
+        z pełnej historii weather_data.
+
+        Args:
+            stats: Lista statystyk dziennych z kluczem city_id
+            batch_size: Rozmiar batcha do wysyłki
+
+        Returns:
+            Liczba wstawionych/zaktualizowanych rekordów
+        """
+        if not stats:
+            return 0
+
+        headers = self.headers.copy()
+        headers["Prefer"] = "return=minimal,resolution=merge-duplicates"
+
+        total = 0
+        for i in range(0, len(stats), batch_size):
+            batch = stats[i:i + batch_size]
+            try:
+                response = requests.post(
+                    f"{self.base_url}/rest/v1/{SUPABASE_TABLE_DAILY_STATS}?on_conflict=date,city_id",
+                    headers=headers,
+                    json=batch,
+                    timeout=60
+                )
+                if response.status_code in [200, 201, 204]:
+                    total += len(batch)
+                else:
+                    logger.error(f"✗ Błąd przy upsercie daily_stats: {response.status_code} - {response.text}")
+            except Exception as e:
+                logger.error(f"✗ Błąd przy upsercie daily_stats: {e}")
+
+        return total
+
     def log_sync(self, status: str, records_fetched: int, records_inserted: int,
                  records_updated: int, error_msg: str = None, execution_time: float = 0.0):
         """Zapisuje log synchronizacji do Supabase."""

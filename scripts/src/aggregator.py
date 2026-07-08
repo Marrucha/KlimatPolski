@@ -102,6 +102,66 @@ class DataAggregator:
         return stats
 
     @staticmethod
+    def aggregate_daily_stats_by_city(records: List[Dict], city_id: int,
+                                       latitude: float = None, longitude: float = None,
+                                       location_name: str = None) -> List[Dict]:
+        """
+        Agreguje rekordy surowe z weather_data (mają już city_id, brak lat/lon)
+        do statystyk dziennych dla jednego miasta.
+
+        Args:
+            records: Lista rekordów surowych z weather_data (tej samej lokalizacji)
+            city_id: ID miasta, dla którego liczymy statystyki
+            latitude, longitude, location_name: metadane miasta - kolumny
+                latitude/longitude w daily_stats są NOT NULL, więc trzeba je uzupełnić
+
+        Returns:
+            Lista statystyk dziennych z ustawionym city_id
+        """
+        grouped = defaultdict(list)
+
+        for record in records:
+            try:
+                time_obj = datetime.fromisoformat(record["forecast_time"].replace("Z", "+00:00"))
+                grouped[str(time_obj.date())].append(record)
+            except Exception as e:
+                logger.warning(f"Błąd przy grupowaniu rekordu: {e}")
+                continue
+
+        stats = []
+
+        for date_str, group_records in grouped.items():
+            try:
+                # Uwaga: tabela daily_stats na produkcji ma węższy zestaw kolumn
+                # niż sql/schema.sql (brak dewpoint/humidity/pressure/gust/snowfall)
+                temps = [r["temperature_2m"] for r in group_records if r.get("temperature_2m") is not None]
+                wind_speeds = [r["wind_speed_10m"] for r in group_records if r.get("wind_speed_10m") is not None]
+                wind_dirs = [r["wind_direction_10m"] for r in group_records if r.get("wind_direction_10m") is not None]
+                precips = [r["precipitation_6h"] for r in group_records if r.get("precipitation_6h") is not None]
+                clouds = [r["cloud_cover_total"] for r in group_records if r.get("cloud_cover_total") is not None]
+
+                stats.append({
+                    "date": date_str,
+                    "city_id": city_id,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "location_name": location_name,
+                    "temp_min": min(temps) if temps else None,
+                    "temp_max": max(temps) if temps else None,
+                    "temp_avg": statistics.mean(temps) if temps else None,
+                    "wind_speed_avg": statistics.mean(wind_speeds) if wind_speeds else None,
+                    "wind_speed_max": max(wind_speeds) if wind_speeds else None,
+                    "wind_direction_dominant": DataAggregator._mean_circular(wind_dirs) if wind_dirs else None,
+                    "precipitation_sum": sum(precips) if precips else None,
+                    "cloud_cover_avg": statistics.mean(clouds) if clouds else None,
+                })
+            except Exception as e:
+                logger.warning(f"Błąd przy agregacji statystyk dla {date_str}: {e}")
+                continue
+
+        return stats
+
+    @staticmethod
     def _mean_circular(angles: List[float]) -> float:
         """
         Oblicza średni kierunek wiatru (statystyka kierunkowa).

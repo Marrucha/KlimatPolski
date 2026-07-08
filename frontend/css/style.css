@@ -208,6 +208,45 @@ body {
     color: var(--primary-color);
 }
 
+/* === KAFELKI ROZWIJALNE (weather-item) === */
+.weather-item.expandable {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border: 1px solid #16a34a;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+}
+
+.weather-item.expandable:hover {
+    background-color: var(--bg-color);
+}
+
+.weather-item.expandable .label small {
+    display: block;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.hourly-breakdown {
+    display: none;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.weather-item.expandable.expanded .hourly-breakdown {
+    display: block;
+}
+
+.hourly-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
 /* === LOADING I BŁĘDY === */
 .loading {
     text-align: center;
@@ -293,6 +332,28 @@ body {
 .data-table-section h2 {
     margin-bottom: 1rem;
     font-size: 1.5rem;
+}
+
+.chart-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.chart-header-row h2 {
+    margin-bottom: 0;
+}
+
+.chart-smoothing-control select {
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    font-weight: 600;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
 }
 
 .table-container {
@@ -542,6 +603,120 @@ details.yearly-controls-details[open] summary {
     line-height: 1.4;
     border-bottom: 1px dashed var(--border-color);
     padding: 0.18rem 0;
+}
+
+/* === KAFELKI KPI ROZWIJALNE (rozbicie na godziny pomiaru) === */
+.kpi-card.expandable {
+    cursor: pointer;
+    border-color: #16a34a;
+}
+
+.kpi-card.expandable .kpi-hint {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 400;
+    margin-top: -0.3rem;
+}
+
+/* === POPUP ROZBICIA WG GODZIN === */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-box {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    max-width: 900px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0.25rem 0.5rem;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.25rem;
+    overflow: auto;
+}
+
+.kpi-hourly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.kpi-hourly-table th,
+.kpi-hourly-table td {
+    padding: 0.5rem 0.75rem;
+    text-align: right;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.kpi-hourly-table thead th {
+    text-align: right;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.kpi-hourly-table tbody th {
+    text-align: left;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.kpi-hourly-table tbody tr:hover {
+    background-color: var(--bg-color);
+}
+
+.kpi-hourly-table td.value-highest {
+    color: #16a34a;
+    font-weight: 700;
+}
+
+.kpi-hourly-table td.value-lowest {
+    color: #dc2626;
+    font-weight: 700;
 }
 
 .kpi-year-row:last-child {

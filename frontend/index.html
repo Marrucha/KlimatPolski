@@ -215,13 +215,25 @@
 
                 <!-- Sekcja KPI dla profilu rocznego -->
                 <div class="kpi-container" id="yearly-kpi-container">
-                    <div class="kpi-card">
+                    <div class="kpi-card expandable" data-metric="avg">
+                        <span class="kpi-title" data-base-title="Średnia okresu">Średnia okresu</span>
+                        <span class="kpi-value" id="kpi-temp-year-avg">--</span>
+                        <small class="kpi-hint">(kliknij, aby rozwinąć wg godzin)</small>
+                    </div>
+                    <div class="kpi-card expandable" data-metric="median">
+                        <span class="kpi-title" data-base-title="Mediana okresu">Mediana okresu</span>
+                        <span class="kpi-value" id="kpi-temp-median">--</span>
+                        <small class="kpi-hint">(kliknij, aby rozwinąć wg godzin)</small>
+                    </div>
+                    <div class="kpi-card expandable" data-metric="max">
                         <span class="kpi-title" data-base-title="Najwyższa temperatura">Najwyższa temperatura</span>
                         <span class="kpi-value" id="kpi-temp-max">--</span>
+                        <small class="kpi-hint">(kliknij, aby rozwinąć wg godzin)</small>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card expandable" data-metric="min">
                         <span class="kpi-title" data-base-title="Najniższa temperatura">Najniższa temperatura</span>
                         <span class="kpi-value" id="kpi-temp-min">--</span>
+                        <small class="kpi-hint">(kliknij, aby rozwinąć wg godzin)</small>
                     </div>
                     <div class="kpi-card">
                         <span class="kpi-title" data-base-title="Najwyższa średnia dobowa">Najwyższa średnia dobowa</span>
@@ -230,14 +242,6 @@
                     <div class="kpi-card">
                         <span class="kpi-title" data-base-title="Najniższa średnia dobowa">Najniższa średnia dobowa</span>
                         <span class="kpi-value" id="kpi-temp-min-avg">--</span>
-                    </div>
-                    <div class="kpi-card">
-                        <span class="kpi-title" data-base-title="Średnia okresu">Średnia okresu</span>
-                        <span class="kpi-value" id="kpi-temp-year-avg">--</span>
-                    </div>
-                    <div class="kpi-card">
-                        <span class="kpi-title" data-base-title="Mediana okresu">Mediana okresu</span>
-                        <span class="kpi-value" id="kpi-temp-median">--</span>
                     </div>
                     <div class="kpi-card">
                         <span class="kpi-title" data-base-title="Dni upalne (T.Max > 30°C)">Dni upalne (T.Max &gt; 30°C)</span>
@@ -266,7 +270,17 @@
         <!-- TAB 2: Wykres porównawczy -->
         <div id="tab-daily-chart" class="tab-content">
             <section class="data-table-section">
-                <h2>Profil roczny - Wykres porównawczy</h2>
+                <div class="chart-header-row">
+                    <h2>Profil roczny - Wykres porównawczy</h2>
+                    <div class="control-group flex-row chart-smoothing-control">
+                        <label for="smoothing-select">Wygładzanie:</label>
+                        <select id="smoothing-select">
+                            <option value="none">Brak</option>
+                            <option value="week">Tygodniowe (7 dni)</option>
+                            <option value="month">Miesięczne (30 dni)</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="chart-wrapper">
                     <canvas id="yearly-comparison-chart"></canvas>
                 </div>
@@ -304,17 +318,25 @@
                     <p class="date-subtitle" id="selected-date-display">Wybierz datę i lokalizację...</p>
                     
                     <div class="weather-grid">
-                        <div class="weather-item">
-                            <span class="label">Temperatura średnia</span>
+                        <div class="weather-item expandable">
+                            <span class="label">Temperatura średnia <small>(kliknij, aby rozwinąć)</small></span>
                             <span class="value" id="temp-avg">--</span>
+                            <div class="hourly-breakdown" id="temp-avg-hourly"></div>
                         </div>
-                        <div class="weather-item">
-                            <span class="label">Temperatura maksymalna</span>
+                        <div class="weather-item expandable">
+                            <span class="label">Temperatura mediana <small>(kliknij, aby rozwinąć)</small></span>
+                            <span class="value" id="temp-median">--</span>
+                            <div class="hourly-breakdown" id="temp-median-hourly"></div>
+                        </div>
+                        <div class="weather-item expandable">
+                            <span class="label">Temperatura maksymalna <small>(kliknij, aby rozwinąć)</small></span>
                             <span class="value text-danger" id="temp-max">--</span>
+                            <div class="hourly-breakdown" id="temp-max-hourly"></div>
                         </div>
-                        <div class="weather-item">
-                            <span class="label">Temperatura minimalna</span>
+                        <div class="weather-item expandable">
+                            <span class="label">Temperatura minimalna <small>(kliknij, aby rozwinąć)</small></span>
                             <span class="value text-primary" id="temp-min">--</span>
+                            <div class="hourly-breakdown" id="temp-min-hourly"></div>
                         </div>
                         <div class="weather-item">
                             <span class="label">Suma opadów</span>
@@ -374,6 +396,19 @@
     <footer>
         <p>Dane źródłowe: NOAA GFS / ERDDAP • Baza: Supabase • Hosting: Firebase</p>
     </footer>
+
+    <!-- Popup rozwinięcia kafelka KPI wg godzin -->
+    <div id="kpi-hourly-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="kpi-hourly-modal-title">Rozbicie wg godzin</h3>
+                <button id="kpi-hourly-modal-close" class="modal-close" aria-label="Zamknij">&times;</button>
+            </div>
+            <div class="modal-body" id="kpi-hourly-modal-body">
+                <p class="placeholder">Ładowanie…</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

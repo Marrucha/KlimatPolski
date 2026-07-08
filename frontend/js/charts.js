@@ -427,7 +427,7 @@ function drawYearlyComparisonChart(canvasId, stats, measure, config) {
                     datasets.push({
                         label: `${year}`,
                         data: yearsData[year],
-                        borderColor: 'rgba(156, 163, 175, 0.12)',
+                        borderColor: 'rgba(107, 114, 128, 0.35)',
                         borderWidth: 0.4, // Bardzo cieniutkie tło
                         pointRadius: 0,
                         hoverBorderWidth: 1.2,
@@ -530,6 +530,28 @@ function drawYearlyComparisonChart(canvasId, stats, measure, config) {
         });
     }
 
+    // Wygładzanie serii (średnia krocząca) - tygodniowe lub miesięczne
+    if (config.smoothing === 'week' || config.smoothing === 'month') {
+        const windowSize = config.smoothing === 'week' ? 7 : 30;
+        const half = Math.floor(windowSize / 2);
+        const smoothArray = (arr) => arr.map((_, i) => {
+            let sum = 0, count = 0;
+            for (let j = i - half; j <= i + half; j++) {
+                if (j < 0 || j >= arr.length) continue;
+                const v = arr[j];
+                if (v !== null && v !== undefined) {
+                    sum += v;
+                    count++;
+                }
+            }
+            return count > 0 ? sum / count : null;
+        });
+
+        datasets.forEach(ds => {
+            ds.data = smoothArray(ds.data);
+        });
+    }
+
     // Nazwy jednostek i etykiety miar
     const measureInfo = {
         temp_avg: { label: 'Temperatura średnia', unit: '°C' },
@@ -587,6 +609,7 @@ function drawYearlyComparisonChart(canvasId, stats, measure, config) {
                     },
                     callbacks: {
                         title: function(context) {
+                            if (!context || !context.length) return '';
                             const dayIndex = context[0].dataIndex;
                             const date = new Date(2024, 0, dayIndex + 1);
                             const monthNames = ['Stycznia', 'Lutego', 'Marca', 'Kwietnia', 'Maja', 'Czerwca', 'Lipca', 'Sierpnia', 'Września', 'Października', 'Listopada', 'Grudnia'];
