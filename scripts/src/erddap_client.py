@@ -35,15 +35,18 @@ class ERDDAPClient:
         import pandas as pd
         import random
         import math
+        from datetime import time as dt_time
         from src.supabase_client import SupabaseClient
 
-        self.logger.info(f"Pobieranie danych GFS dla okresu (MOCK DATA dla miast z bazy)")
+        self.logger.info(f"Pobieranie danych GFS dla okresu (MOCK DATA dla Warszawy, Wrocławia i Włodawy)")
 
         supabase = SupabaseClient()
         cities = []
         try:
             if supabase.connect():
-                cities = supabase.get_records("cities", "select=latitude,longitude")
+                all_cities = supabase.get_records("cities", "select=id,name,latitude,longitude")
+                # Filtrujemy tylko: Warszawa (37), Wrocław (39), Włodawa (1)
+                cities = [c for c in all_cities if c.get('id') in [1, 37, 39] or c.get('name') in ['Warszawa', 'Wrocław', 'Włodawa']]
                 supabase.close()
         except Exception as e:
             self.logger.warning(f"Nie udało się pobrać miast z Supabase: {e}")
@@ -51,14 +54,21 @@ class ERDDAPClient:
         # Fallback na wypadek braku połączenia lub pustej bazy
         if not cities:
             cities = [
-                {"latitude": 52.25, "longitude": 21.0}, # Warszawa
-                {"latitude": 51.5, "longitude": 23.5},  # Włodawa
-                {"latitude": 51.25, "longitude": 22.5}, # Lublin
-                {"latitude": 51.0, "longitude": 17.0},  # Wrocław
-                {"latitude": 50.0, "longitude": 19.95}, # Kraków (uwaga: Kraków ma 19.95)
+                {"id": 37, "name": "Warszawa", "latitude": 52.25, "longitude": 21.0},
+                {"id": 1, "name": "Włodawa", "latitude": 51.5, "longitude": 23.5},
+                {"id": 39, "name": "Wrocław", "latitude": 51.0, "longitude": 17.0},
             ]
 
-        times = [datetime.utcnow() - timedelta(hours=i) for i in range(24)]
+        # Oblicz daty dla ostatnich 8 godzin pomiarowych (0, 3, 6, 9, 12, 15, 18, 21) z wczoraj i dzisiaj
+        base_date = datetime.utcnow().date()
+        times = []
+        for day_offset in [-1, 0]:
+            day = base_date + timedelta(days=day_offset)
+            for hour in [0, 3, 6, 9, 12, 15, 18, 21]:
+                dt = datetime.combine(day, dt_time(hour=hour))
+                # Unikaj generowania godzin z przyszłości
+                if dt <= datetime.utcnow():
+                    times.append(dt)
 
         records = []
         for t in times:
