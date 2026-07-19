@@ -22,12 +22,11 @@ FIREBASE_CLIENT_EMAIL = os.getenv("FIREBASE_CLIENT_EMAIL", "")
 ERDDAP_BASE_URL = "https://coastwatch.pfeg.noaa.gov/erddap"
 ERDDAP_DATASET_ID = "gfsanl"  # GFS Analysis na ERDDAP
 
-# === OBSZAR ZAINTERESOWANIA (Lubelszczyzna) ===
-# Województwo lubelskie: 50.2°N – 52.2°N, 21.8°E – 24.2°E
-BBOX_NORTH = 52.2
-BBOX_SOUTH = 50.2
-BBOX_EAST = 24.2
-BBOX_WEST = 21.8
+# === OBSZAR ZAINTERESOWANIA (Polska) ===
+BBOX_NORTH = 56.0
+BBOX_SOUTH = 49.0
+BBOX_EAST = 24.5
+BBOX_WEST = 14.0
 
 # Siatka geograficzna: aproximatnie 0.25° x 0.25°
 GRID_STEP = 0.25
