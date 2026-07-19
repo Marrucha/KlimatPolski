@@ -36,12 +36,19 @@ WEATHER_FIELDS = (
 )
 
 
-def fetch_all_weather_records(supabase: SupabaseClient, city_id: int, page_size: int = 1000):
+def fetch_all_weather_records(supabase: SupabaseClient, city_id: int, page_size: int = 1000, days: int = None):
     """Pobiera wszystkie rekordy weather_data dla miasta, stronicując po forecast_time."""
     offset = 0
+    date_filter = ""
+    if days is not None:
+        from datetime import datetime, timedelta
+        start_date = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d')
+        date_filter = f"&forecast_time=gte.{start_date}T00:00:00Z"
+
     while True:
         query = (
             f"city_id=eq.{city_id}&select={WEATHER_FIELDS}"
+            f"{date_filter}"
             f"&order=forecast_time.asc&limit={page_size}&offset={offset}"
         )
         page = supabase.get_records("weather_data", query)
@@ -54,7 +61,7 @@ def fetch_all_weather_records(supabase: SupabaseClient, city_id: int, page_size:
 
 
 def backfill_city(supabase: SupabaseClient, city_id: int, city_name: str,
-                   latitude: float, longitude: float) -> None:
+                   latitude: float, longitude: float, days: int = None) -> None:
     logger.info(f"=== Przeliczanie daily_stats dla {city_name} (ID: {city_id}) ===")
     location_name = f"{latitude:.2f}N, {longitude:.2f}E"
 
@@ -62,7 +69,7 @@ def backfill_city(supabase: SupabaseClient, city_id: int, city_name: str,
     total_stats_written = 0
     pending = []
 
-    for page in fetch_all_weather_records(supabase, city_id):
+    for page in fetch_all_weather_records(supabase, city_id, days=days):
         total_records += len(page)
         pending.extend(page)
 
@@ -88,6 +95,7 @@ def backfill_city(supabase: SupabaseClient, city_id: int, city_name: str,
 def main():
     parser = argparse.ArgumentParser(description="Przelicza daily_stats z pełnej historii weather_data")
     parser.add_argument("--city-id", required=True, help="ID miasta lub 'all'")
+    parser.add_argument("--days", type=int, default=None, help="Liczba ostatnich dni do przeliczenia (np. 365 dla ostatniego roku)")
     args = parser.parse_args()
 
     start_time = time.time()
@@ -112,7 +120,7 @@ def main():
             return 1
 
     for city in targets:
-        backfill_city(supabase, city["id"], city["name"], city["latitude"], city["longitude"])
+        backfill_city(supabase, city["id"], city["name"], city["latitude"], city["longitude"], days=args.days)
 
     logger.info(f"✓ Zakończono w {time.time() - start_time:.1f}s")
     supabase.close()
