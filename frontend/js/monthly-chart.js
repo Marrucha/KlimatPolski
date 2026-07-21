@@ -65,6 +65,14 @@ function formatMonthlyYearsCount(count) {
     return `${count} lat`;
 }
 
+function getMonthlyDeltaValues(firstGroup, secondGroup) {
+    return firstGroup.map((first, index) => {
+        const second = secondGroup[index];
+        if (first.value === null || second?.value === null || second === undefined) return null;
+        return second.value - first.value;
+    });
+}
+
 function getMonthlyChartPeriods(mode, selectedDecades = []) {
     if (mode === 'periods') return MONTHLY_CHART_PERIODS;
     if (mode === 'decades') {
@@ -96,6 +104,7 @@ function updateMonthlyDecadeLimit() {
     inputs.forEach(input => {
         input.disabled = !input.checked && selectedCount >= 3;
     });
+    updateMonthlyDeltaControl();
 }
 
 function setupMonthlyDecadeOptions(records) {
@@ -139,6 +148,16 @@ function setupMonthlyDecadeOptions(records) {
 function updateMonthlyComparisonControls() {
     const decadesEnabled = document.getElementById('monthly-decades-comparison')?.checked ?? false;
     document.getElementById('monthly-decades-container')?.classList.toggle('hidden', !decadesEnabled);
+    updateMonthlyDeltaControl();
+}
+
+function updateMonthlyDeltaControl() {
+    const deltaToggle = document.getElementById('monthly-show-delta');
+    if (!deltaToggle) return;
+    const periods = getMonthlyChartPeriods(getMonthlyChartMode(), getSelectedMonthlyDecades());
+    const enabled = periods.length === 2;
+    deltaToggle.disabled = !enabled;
+    if (!enabled) deltaToggle.checked = false;
 }
 
 function renderMonthlyAveragesChart(records, month, field) {
@@ -149,6 +168,34 @@ function renderMonthlyAveragesChart(records, month, field) {
         ...period,
         dailyAverages: getMonthlyDailyAverages(records, month, field, period.startYear, period.endYear)
     }));
+    const showDelta = periodAverages.length === 2
+        && (document.getElementById('monthly-show-delta')?.checked ?? false);
+    const datasets = periodAverages.map(period => ({
+        label: period.label,
+        data: period.dailyAverages.map(item => item.value),
+        backgroundColor: period.color || metric.color,
+        borderColor: period.color || metric.color,
+        borderWidth: 1,
+        borderRadius: 2,
+        maxBarThickness: 32,
+        order: 2
+    }));
+    if (showDelta) {
+        datasets.push({
+            type: 'line',
+            label: `Delta (${periods[1].label} - ${periods[0].label})`,
+            data: getMonthlyDeltaValues(periodAverages[0].dailyAverages, periodAverages[1].dailyAverages),
+            borderColor: '#111827',
+            backgroundColor: '#111827',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            tension: 0.15,
+            spanGaps: false,
+            isDelta: true,
+            order: 1
+        });
+    }
     const canvas = document.getElementById('monthly-averages-chart');
     if (!canvas) return;
 
@@ -157,15 +204,7 @@ function renderMonthlyAveragesChart(records, month, field) {
         type: 'bar',
         data: {
             labels: periodAverages[0].dailyAverages.map(item => String(item.day)),
-            datasets: periodAverages.map(period => ({
-                label: period.label,
-                data: period.dailyAverages.map(item => item.value),
-                backgroundColor: period.color || metric.color,
-                borderColor: period.color || metric.color,
-                borderWidth: 1,
-                borderRadius: 2,
-                maxBarThickness: 32
-            }))
+            datasets
         },
         options: {
             responsive: true,
@@ -181,12 +220,19 @@ function renderMonthlyAveragesChart(records, month, field) {
                     callbacks: {
                         title: items => `${items[0].label} ${MONTHLY_CHART_MONTH_NAMES[month - 1]}`,
                         label: context => {
+                            if (context.dataset.isDelta) {
+                                const value = context.parsed.y;
+                                if (value === null) return 'Delta: brak danych';
+                                const sign = value > 0 ? '+' : '';
+                                return `Delta: ${sign}${value.toFixed(1)} ${metric.unit}`;
+                            }
                             const period = periodAverages[context.datasetIndex];
                             const item = period.dailyAverages[context.dataIndex];
                             if (item.value === null) return `${period.label}: brak danych`;
                             return `${period.label}: ${item.value.toFixed(1)} ${metric.unit}`;
                         },
                         afterLabel: context => {
+                            if (context.dataset.isDelta) return 'Druga grupa minus pierwsza';
                             const period = periodAverages[context.datasetIndex];
                             const samples = period.dailyAverages[context.dataIndex].samples;
                             return `Liczba lat: ${samples}`;
@@ -268,6 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     monthSelect?.addEventListener('change', () => loadMonthlyChartTab());
     document.getElementById('monthly-measure-select')?.addEventListener('change', () => loadMonthlyChartTab());
+    document.getElementById('monthly-show-delta')?.addEventListener('change', () => loadMonthlyChartTab());
 
     const periodComparison = document.getElementById('monthly-period-comparison');
     const decadesComparison = document.getElementById('monthly-decades-comparison');

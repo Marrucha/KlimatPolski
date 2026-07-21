@@ -650,6 +650,11 @@ details.yearly-controls-details[open] summary {
     cursor: not-allowed;
 }
 
+.monthly-delta-toggle:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .monthly-chart-status {
     min-height: 1.5rem;
     margin-bottom: 0.75rem;
