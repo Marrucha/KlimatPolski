@@ -3,17 +3,17 @@
  */
 
 const RECORD_METRICS = [
-    { key: 'periodAverage', title: 'Najwyższa średnia okresu', direction: 'desc', unit: 'temperature' },
-    { key: 'periodMedian', title: 'Najwyższa mediana okresu', direction: 'desc', unit: 'temperature' },
+    { key: 'periodAverage', title: 'Najwyższa średnia okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
+    { key: 'periodMedian', title: 'Najwyższa mediana okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
     { key: 'tempMax', title: 'Najwyższa temperatura', direction: 'desc', unit: 'temperature' },
     { key: 'tempMin', title: 'Najniższa temperatura', direction: 'asc', unit: 'temperature' },
     { key: 'tempMaxAvg', title: 'Najwyższa średnia dobowa', direction: 'desc', unit: 'temperature' },
     { key: 'tempMinAvg', title: 'Najniższa średnia dobowa', direction: 'asc', unit: 'temperature' },
-    { key: 'daysHot', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true },
-    { key: 'daysWarm', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true },
-    { key: 'daysFrosty', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true },
-    { key: 'daysGlacial', title: 'Najwięcej dni bardzo mroźnych (T.Min < -10°C)', direction: 'desc', unit: 'days', positiveOnly: true },
-    { key: 'tropicalNights', title: 'Najwięcej nocy tropikalnych (T.Min >= 20°C)', direction: 'desc', unit: 'nights', positiveOnly: true },
+    { key: 'daysHot', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysWarm', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysFrosty', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysGlacial', title: 'Najwięcej dni bardzo mroźnych (T.Min < -10°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'tropicalNights', title: 'Najwięcej nocy tropikalnych (T.Min >= 20°C)', direction: 'desc', unit: 'nights', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'maxDiurnalRange', title: 'Największa dobowa amplituda', direction: 'desc', unit: 'temperature' }
 ];
 
@@ -123,6 +123,7 @@ function summarizeRecordPeriod(period) {
     return {
         label: period.label,
         sortKey: period.sortKey,
+        isComplete: period.isComplete,
         periodAverage: recordAverage(averageValues),
         periodMedian: recordMedian(averageValues),
         tempMax: maxValues.length > 0 ? Math.max(...maxValues) : null,
@@ -154,13 +155,17 @@ function groupRecordsByPeriod(records, granularity, now = new Date()) {
 
     const currentPeriodKey = getCurrentRecordPeriodKey(granularity, now);
     return Array.from(groups.values())
-        .filter(group => currentPeriodKey === null || group.key < currentPeriodKey)
+        .map(group => ({
+            ...group,
+            isComplete: currentPeriodKey === null || group.key < currentPeriodKey
+        }))
         .map(summarizeRecordPeriod);
 }
 
 function getTopRecordPeriods(summaries, metric) {
     return summaries
         .filter(summary => Number.isFinite(summary[metric.key]))
+        .filter(summary => !metric.completedPeriodsOnly || summary.isComplete)
         .filter(summary => !metric.positiveOnly || summary[metric.key] > 0)
         .sort((a, b) => {
             const difference = metric.direction === 'asc'
