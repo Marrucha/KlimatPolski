@@ -4,6 +4,7 @@
 
 const RECORD_METRICS = [
     { key: 'periodAverage', title: 'Najwyższa średnia okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
+    { key: 'periodAverage', title: 'Najniższa średnia okresu', direction: 'asc', unit: 'temperature', completedPeriodsOnly: true },
     { key: 'periodMedian', title: 'Najwyższa mediana okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
     { key: 'tempMax', title: 'Najwyższa temperatura', direction: 'desc', unit: 'temperature' },
     { key: 'tempMin', title: 'Najniższa temperatura', direction: 'asc', unit: 'temperature' },
