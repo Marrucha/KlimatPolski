@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klimat Polski - Archiwalne dane meteorologiczne</title>
-    <link rel="stylesheet" href="css/style.css?v=20260721-9">
+    <link rel="stylesheet" href="css/style.css?v=20260721-10">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -19,6 +19,7 @@
                 <button class="tab-btn active" data-tab="tab-daily-kpis">Wskaźniki KPI</button>
                 <button class="tab-btn" data-tab="tab-records">Rekordy</button>
                 <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
+                <button class="tab-btn" data-tab="tab-monthly-chart">Wykresy miesięczne</button>
                 <button class="tab-btn" data-tab="tab-weather">Pogoda bieżąca</button>
                 <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
             </div>
@@ -294,6 +295,53 @@
             </section>
         </div>
 
+        <!-- TAB: Wykresy miesięczne -->
+        <div id="tab-monthly-chart" class="tab-content">
+            <section class="data-table-section monthly-chart-section">
+                <h2>Wieloletnie średnie dzienne w miesiącu</h2>
+                <div class="monthly-chart-controls">
+                    <div class="control-group">
+                        <label for="monthly-location-select">Lokalizacja</label>
+                        <select id="monthly-location-select">
+                            <option value="">-- Załaduj lokalizacje --</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="monthly-month-select">Miesiąc</label>
+                        <select id="monthly-month-select">
+                            <option value="1">Styczeń</option>
+                            <option value="2">Luty</option>
+                            <option value="3">Marzec</option>
+                            <option value="4">Kwiecień</option>
+                            <option value="5">Maj</option>
+                            <option value="6">Czerwiec</option>
+                            <option value="7">Lipiec</option>
+                            <option value="8">Sierpień</option>
+                            <option value="9">Wrzesień</option>
+                            <option value="10">Październik</option>
+                            <option value="11">Listopad</option>
+                            <option value="12">Grudzień</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="monthly-measure-select">Miara</label>
+                        <select id="monthly-measure-select">
+                            <option value="temp_avg">Temperatura średnia</option>
+                            <option value="temp_max">Temperatura maksymalna</option>
+                            <option value="temp_min">Temperatura minimalna</option>
+                            <option value="wind_speed_avg">Prędkość wiatru</option>
+                            <option value="precipitation_sum">Opady</option>
+                            <option value="cloud_cover_avg">Zachmurzenie</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="monthly-chart-status" class="monthly-chart-status">Wybierz lokalizację</div>
+                <div class="monthly-chart-wrapper">
+                    <canvas id="monthly-averages-chart"></canvas>
+                </div>
+            </section>
+        </div>
+
         <!-- TAB: Rekordy -->
         <div id="tab-records" class="tab-content">
             <section class="records-section">
@@ -446,10 +494,11 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260721-9"></script>
-    <script src="js/charts.js?v=20260721-9"></script>
-    <script src="js/map.js?v=20260721-9"></script>
-    <script src="js/main.js?v=20260721-9"></script>
-    <script src="js/records.js?v=20260721-9"></script>
+    <script src="js/api.js?v=20260721-10"></script>
+    <script src="js/charts.js?v=20260721-10"></script>
+    <script src="js/map.js?v=20260721-10"></script>
+    <script src="js/main.js?v=20260721-10"></script>
+    <script src="js/records.js?v=20260721-10"></script>
+    <script src="js/monthly-chart.js?v=20260721-10"></script>
 </body>
 </html>

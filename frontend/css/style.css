@@ -583,6 +583,52 @@ details.yearly-controls-details[open] summary {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 
+.monthly-chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.monthly-chart-controls .control-group {
+    flex: 1 1 190px;
+}
+
+.monthly-chart-controls select {
+    width: 100%;
+}
+
+.monthly-chart-status {
+    min-height: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.monthly-chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    min-height: 360px;
+}
+
+@media (max-width: 768px) {
+    .monthly-chart-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .monthly-chart-controls .control-group {
+        flex-basis: auto;
+        width: 100%;
+    }
+
+    .monthly-chart-wrapper {
+        height: 420px;
+    }
+}
+
 .kpi-pair {
     grid-column: span 2;
     display: grid;

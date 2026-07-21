@@ -484,6 +484,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (tabId === 'tab-records' && typeof loadRecordsTab === 'function') {
             loadRecordsTab();
         }
+
+        if (tabId === 'tab-monthly-chart' && typeof loadMonthlyChartTab === 'function') {
+            loadMonthlyChartTab();
+        }
     });
 });
 
@@ -494,7 +498,8 @@ async function initializeLocationSelects() {
     [
         document.getElementById('raw-location-select'),
         document.getElementById('daily-location-select'),
-        document.getElementById('records-location-select')
+        document.getElementById('records-location-select'),
+        document.getElementById('monthly-location-select')
     ].forEach(select => {
         if (select) {
             select.innerHTML = '<option value="">-- Wybierz --</option>';
@@ -522,6 +527,8 @@ async function initializeLocationSelects() {
             dailySelect.value = opt.value;
             const recordsSelect = document.getElementById('records-location-select');
             if (recordsSelect) recordsSelect.value = opt.value;
+            const monthlySelect = document.getElementById('monthly-location-select');
+            if (monthlySelect) monthlySelect.value = opt.value;
 
             if (saved) {
                 if (saved.measure) document.getElementById('daily-measure-select').value = saved.measure;
@@ -547,6 +554,7 @@ function syncLocationSelects(sourceSelect) {
     document.getElementById('raw-location-select').value = locationValue;
     document.getElementById('daily-location-select').value = locationValue;
     document.getElementById('records-location-select').value = locationValue;
+    document.getElementById('monthly-location-select').value = locationValue;
 }
 
 function syncDateRange() {
@@ -579,6 +587,7 @@ document.getElementById('location-select')?.addEventListener('change', (e) => sy
 document.getElementById('raw-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('daily-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('records-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
+document.getElementById('monthly-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('raw-date-from')?.addEventListener('change', syncDateRange);
 document.getElementById('date-picker')?.addEventListener('change', syncYearFromMainDate);
 
