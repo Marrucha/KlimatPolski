@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klimat Polski - Archiwalne dane meteorologiczne</title>
-    <link rel="stylesheet" href="css/style.css?v=20260721-12">
+    <link rel="stylesheet" href="css/style.css?v=20260721-13">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -335,6 +335,20 @@
                         </select>
                     </div>
                 </div>
+                <div class="monthly-comparison-options">
+                    <label class="monthly-option-toggle" for="monthly-period-comparison">
+                        <input type="checkbox" id="monthly-period-comparison">
+                        <span>Porównaj okresy 1950-1989 i 1990-2026</span>
+                    </label>
+                    <label class="monthly-option-toggle" for="monthly-decades-comparison">
+                        <input type="checkbox" id="monthly-decades-comparison">
+                        <span>Porównaj dekady</span>
+                    </label>
+                </div>
+                <div id="monthly-decades-container" class="monthly-decades-container hidden">
+                    <span class="monthly-decades-label">Dekady (maks. 3)</span>
+                    <div id="monthly-decades-list" class="monthly-decades-list"></div>
+                </div>
                 <div id="monthly-chart-status" class="monthly-chart-status">Wybierz lokalizację</div>
                 <div class="monthly-chart-wrapper">
                     <canvas id="monthly-averages-chart"></canvas>
@@ -494,11 +508,11 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260721-12"></script>
-    <script src="js/charts.js?v=20260721-12"></script>
-    <script src="js/map.js?v=20260721-12"></script>
-    <script src="js/main.js?v=20260721-12"></script>
-    <script src="js/records.js?v=20260721-12"></script>
-    <script src="js/monthly-chart.js?v=20260721-12"></script>
+    <script src="js/api.js?v=20260721-13"></script>
+    <script src="js/charts.js?v=20260721-13"></script>
+    <script src="js/map.js?v=20260721-13"></script>
+    <script src="js/main.js?v=20260721-13"></script>
+    <script src="js/records.js?v=20260721-13"></script>
+    <script src="js/monthly-chart.js?v=20260721-13"></script>
 </body>
 </html>

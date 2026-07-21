@@ -599,6 +599,57 @@ details.yearly-controls-details[open] summary {
     width: 100%;
 }
 
+.monthly-comparison-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.monthly-option-toggle,
+.monthly-decade-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.monthly-option-toggle input,
+.monthly-decade-option input {
+    width: 1.1rem;
+    height: 1.1rem;
+    min-width: 1.1rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.monthly-decades-container {
+    padding: 0.75rem 0 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.monthly-decades-label {
+    display: block;
+    margin-bottom: 0.6rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.monthly-decades-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 1.1rem;
+}
+
+.monthly-decade-option:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .monthly-chart-status {
     min-height: 1.5rem;
     margin-bottom: 0.75rem;
@@ -626,6 +677,10 @@ details.yearly-controls-details[open] summary {
 
     .monthly-chart-wrapper {
         height: 420px;
+    }
+
+    .monthly-comparison-options {
+        flex-direction: column;
     }
 }
 

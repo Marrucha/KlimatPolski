@@ -21,6 +21,8 @@ const MONTHLY_CHART_PERIODS = [
     { label: '1990-2026', startYear: 1990, endYear: 2026, color: '#dc2626' }
 ];
 
+const MONTHLY_CHART_DECADE_COLORS = ['#2563eb', '#dc2626', '#0f766e'];
+
 const monthlyChartState = {
     cityId: null,
     records: null,
@@ -63,9 +65,87 @@ function formatMonthlyYearsCount(count) {
     return `${count} lat`;
 }
 
+function getMonthlyChartPeriods(mode, selectedDecades = []) {
+    if (mode === 'periods') return MONTHLY_CHART_PERIODS;
+    if (mode === 'decades') {
+        return selectedDecades.slice(0, 3).map((decade, index) => ({
+            label: `${decade}-${Math.min(decade + 9, 2026)}`,
+            startYear: decade,
+            endYear: Math.min(decade + 9, 2026),
+            color: MONTHLY_CHART_DECADE_COLORS[index]
+        }));
+    }
+    return [{ label: '1950-2026', startYear: 1950, endYear: 2026, color: null }];
+}
+
+function getMonthlyChartMode() {
+    if (document.getElementById('monthly-decades-comparison')?.checked) return 'decades';
+    if (document.getElementById('monthly-period-comparison')?.checked) return 'periods';
+    return 'all';
+}
+
+function getSelectedMonthlyDecades() {
+    return Array.from(document.querySelectorAll('#monthly-decades-list input:checked'))
+        .map(input => Number(input.value))
+        .sort((a, b) => a - b);
+}
+
+function updateMonthlyDecadeLimit() {
+    const inputs = Array.from(document.querySelectorAll('#monthly-decades-list input'));
+    const selectedCount = inputs.filter(input => input.checked).length;
+    inputs.forEach(input => {
+        input.disabled = !input.checked && selectedCount >= 3;
+    });
+}
+
+function setupMonthlyDecadeOptions(records) {
+    const list = document.getElementById('monthly-decades-list');
+    if (!list) return;
+
+    const existingSelection = new Set(getSelectedMonthlyDecades());
+    const hasExistingOptions = list.children.length > 0;
+    const decades = [...new Set(records
+        .map(record => Number(record.date?.slice(0, 4)))
+        .filter(year => Number.isFinite(year) && year >= 1950 && year <= 2026)
+        .map(year => Math.floor(year / 10) * 10)
+    )].sort((a, b) => a - b);
+    const defaultSelection = new Set(decades.slice(-3));
+    const preservedSelection = new Set(decades.filter(decade => existingSelection.has(decade)));
+    const selected = hasExistingOptions && preservedSelection.size > 0
+        ? preservedSelection
+        : defaultSelection;
+
+    list.innerHTML = '';
+    decades.forEach(decade => {
+        const label = document.createElement('label');
+        label.className = 'monthly-decade-option';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = String(decade);
+        input.checked = selected.has(decade);
+        input.addEventListener('change', () => {
+            if (getSelectedMonthlyDecades().length === 0) input.checked = true;
+            updateMonthlyDecadeLimit();
+            loadMonthlyChartTab();
+        });
+        const text = document.createElement('span');
+        text.textContent = `${decade}-${Math.min(decade + 9, 2026)}`;
+        label.append(input, text);
+        list.appendChild(label);
+    });
+    updateMonthlyDecadeLimit();
+}
+
+function updateMonthlyComparisonControls() {
+    const decadesEnabled = document.getElementById('monthly-decades-comparison')?.checked ?? false;
+    document.getElementById('monthly-decades-container')?.classList.toggle('hidden', !decadesEnabled);
+}
+
 function renderMonthlyAveragesChart(records, month, field) {
     const metric = MONTHLY_CHART_METRICS[field];
-    const periodAverages = MONTHLY_CHART_PERIODS.map(period => ({
+    const mode = getMonthlyChartMode();
+    const periods = getMonthlyChartPeriods(mode, getSelectedMonthlyDecades());
+    const periodAverages = periods.map(period => ({
         ...period,
         dailyAverages: getMonthlyDailyAverages(records, month, field, period.startYear, period.endYear)
     }));
@@ -80,8 +160,8 @@ function renderMonthlyAveragesChart(records, month, field) {
             datasets: periodAverages.map(period => ({
                 label: period.label,
                 data: period.dailyAverages.map(item => item.value),
-                backgroundColor: period.color,
-                borderColor: period.color,
+                backgroundColor: period.color || metric.color,
+                borderColor: period.color || metric.color,
                 borderWidth: 1,
                 borderRadius: 2,
                 maxBarThickness: 32
@@ -93,7 +173,7 @@ function renderMonthlyAveragesChart(records, month, field) {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
-                    display: true,
+                    display: periodAverages.length > 1,
                     position: 'top',
                     labels: { usePointStyle: true, pointStyle: 'rect' }
                 },
@@ -127,7 +207,7 @@ function renderMonthlyAveragesChart(records, month, field) {
         }
     });
 
-    const periodYearCounts = MONTHLY_CHART_PERIODS.map(period => new Set(records
+    const periodYearCounts = periods.map(period => new Set(records
         .filter(record => Number(record.date?.slice(5, 7)) === month)
         .filter(record => record[field] !== null && record[field] !== undefined && record[field] !== '')
         .filter(record => Number.isFinite(Number(record[field])))
@@ -137,7 +217,9 @@ function renderMonthlyAveragesChart(records, month, field) {
     const status = document.getElementById('monthly-chart-status');
     status.textContent = periodYearCounts.every(count => count === 0)
         ? 'Brak danych dla wybranego miesiąca'
-        : `Porównanie: 1950-1989 (${formatMonthlyYearsCount(periodYearCounts[0])}) i 1990-2026 (${formatMonthlyYearsCount(periodYearCounts[1])})`;
+        : periodAverages.length === 1
+            ? `Średnia z ${formatMonthlyYearsCount(periodYearCounts[0])} (${periods[0].label})`
+            : `Porównanie: ${periods.map((period, index) => `${period.label} (${formatMonthlyYearsCount(periodYearCounts[index])})`).join(', ')}`;
 }
 
 async function loadMonthlyChartTab(force = false) {
@@ -167,6 +249,7 @@ async function loadMonthlyChartTab(force = false) {
             monthlyChartState.cityId = location.city_id;
         }
         if (requestId !== monthlyChartState.requestId) return;
+        setupMonthlyDecadeOptions(monthlyChartState.records);
         renderMonthlyAveragesChart(monthlyChartState.records, month, field);
     } catch (error) {
         if (requestId !== monthlyChartState.requestId) return;
@@ -185,4 +268,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     monthSelect?.addEventListener('change', () => loadMonthlyChartTab());
     document.getElementById('monthly-measure-select')?.addEventListener('change', () => loadMonthlyChartTab());
+
+    const periodComparison = document.getElementById('monthly-period-comparison');
+    const decadesComparison = document.getElementById('monthly-decades-comparison');
+    periodComparison?.addEventListener('change', () => {
+        if (periodComparison.checked && decadesComparison) decadesComparison.checked = false;
+        updateMonthlyComparisonControls();
+        loadMonthlyChartTab();
+    });
+    decadesComparison?.addEventListener('change', () => {
+        if (decadesComparison.checked && periodComparison) periodComparison.checked = false;
+        updateMonthlyComparisonControls();
+        loadMonthlyChartTab();
+    });
+    updateMonthlyComparisonControls();
 });
