@@ -1093,7 +1093,7 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
         const warmDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max >= 20).length;
         kpis.daysCool[key] = formatPolishUnit(warmDays / yearsCount, 'day');
 
-        const frostyDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max < 0).length;
+        const frostyDays = records.filter(r => r.temp_min !== null && r.temp_min !== undefined && r.temp_min < 0).length;
         kpis.daysFrosty[key] = formatPolishUnit(frostyDays / yearsCount, 'day');
 
         const tropicalNights = records.filter(r => r.temp_min !== null && r.temp_min !== undefined && r.temp_min >= 20).length;
