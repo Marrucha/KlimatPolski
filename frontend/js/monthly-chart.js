@@ -96,6 +96,38 @@ function getMonthlyDeltaValues(firstGroup, secondGroup) {
     });
 }
 
+function getMonthlyValuesAverage(values) {
+    const validValues = values.filter(value => Number.isFinite(value));
+    return validValues.length > 0
+        ? validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+        : null;
+}
+
+function renderMonthlyPeriodAverageCards(periodAverages, metric, deltaValues = null) {
+    const container = document.getElementById('monthly-period-averages');
+    if (!container) return;
+
+    const cards = periodAverages.map(period => ({
+        label: `Średnia ${period.label}`,
+        color: period.color || metric.color,
+        value: getMonthlyValuesAverage(period.dailyAverages.map(item => item.value))
+    }));
+    if (deltaValues) {
+        cards.push({
+            label: `Delta średnich (${periodAverages[1].label} - ${periodAverages[0].label})`,
+            color: '#111827',
+            value: getMonthlyValuesAverage(deltaValues)
+        });
+    }
+
+    container.innerHTML = cards.map(card => `
+        <div class="monthly-average-card" style="--monthly-series-color: ${card.color}">
+            <span class="monthly-average-label">${card.label}</span>
+            <strong class="monthly-average-value">${card.value === null ? '--' : `${card.value.toFixed(1)} ${metric.unit}`}</strong>
+        </div>
+    `).join('');
+}
+
 function getMonthlyChartPeriods(mode, selectedDecades = []) {
     if (mode === 'periods') return MONTHLY_CHART_PERIODS;
     if (mode === 'decades') {
@@ -204,8 +236,9 @@ function renderMonthlyAveragesChart(records, month, field) {
         yAxisID: 'y',
         order: 2
     }));
+    let deltaValues = null;
     if (showDelta) {
-        const deltaValues = getMonthlyDeltaValues(
+        deltaValues = getMonthlyDeltaValues(
             periodAverages[0].dailyAverages,
             periodAverages[1].dailyAverages
         );
@@ -233,6 +266,7 @@ function renderMonthlyAveragesChart(records, month, field) {
             order: 1
         });
     }
+    renderMonthlyPeriodAverageCards(periodAverages, metric, deltaValues);
     const canvas = document.getElementById('monthly-averages-chart');
     if (!canvas) return;
 
@@ -327,6 +361,8 @@ async function loadMonthlyChartTab(force = false) {
     const field = document.getElementById('monthly-measure-select').value;
     const requestId = ++monthlyChartState.requestId;
     status.textContent = 'Ładowanie danych...';
+    const averagesContainer = document.getElementById('monthly-period-averages');
+    if (averagesContainer) averagesContainer.innerHTML = '';
 
     try {
         const canReuseProfileData = typeof currentDailyCityId !== 'undefined'

@@ -662,6 +662,39 @@ details.yearly-controls-details[open] summary {
     font-size: 0.9rem;
 }
 
+.monthly-period-averages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.monthly-average-card {
+    min-width: 0;
+    padding: 0.8rem 0.9rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-top: 4px solid var(--monthly-series-color);
+    border-radius: 0.375rem;
+}
+
+.monthly-average-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    overflow-wrap: anywhere;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.monthly-average-value {
+    display: block;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .monthly-chart-wrapper {
     width: 100%;
     height: 520px;
