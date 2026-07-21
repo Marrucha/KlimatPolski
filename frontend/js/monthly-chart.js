@@ -16,6 +16,11 @@ const MONTHLY_CHART_MONTH_NAMES = [
     'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'
 ];
 
+const MONTHLY_CHART_PERIODS = [
+    { label: '1950-1990', startYear: 1950, endYear: 1990, color: '#2563eb' },
+    { label: '1990-2026', startYear: 1990, endYear: 2026, color: '#dc2626' }
+];
+
 const monthlyChartState = {
     cityId: null,
     records: null,
@@ -23,7 +28,7 @@ const monthlyChartState = {
     requestId: 0
 };
 
-function getMonthlyDailyAverages(records, month, field) {
+function getMonthlyDailyAverages(records, month, field, startYear = null, endYear = null) {
     const daysInMonth = new Date(2000, month, 0).getDate();
     const valuesByDay = Array.from({ length: daysInMonth }, () => []);
 
@@ -31,6 +36,8 @@ function getMonthlyDailyAverages(records, month, field) {
         if (!record.date) return;
         const parts = record.date.split('-').map(Number);
         if (parts[1] !== month) return;
+        if (startYear !== null && parts[0] < startYear) return;
+        if (endYear !== null && parts[0] > endYear) return;
         if (record[field] === null || record[field] === undefined || record[field] === '') return;
         const value = Number(record[field]);
         if (!Number.isFinite(value)) return;
@@ -46,9 +53,22 @@ function getMonthlyDailyAverages(records, month, field) {
     }));
 }
 
+function formatMonthlyYearsCount(count) {
+    if (count === 1) return '1 rok';
+    const lastTwoDigits = count % 100;
+    const lastDigit = count % 10;
+    if (lastDigit >= 2 && lastDigit <= 4 && (lastTwoDigits < 12 || lastTwoDigits > 14)) {
+        return `${count} lata`;
+    }
+    return `${count} lat`;
+}
+
 function renderMonthlyAveragesChart(records, month, field) {
     const metric = MONTHLY_CHART_METRICS[field];
-    const dailyAverages = getMonthlyDailyAverages(records, month, field);
+    const periodAverages = MONTHLY_CHART_PERIODS.map(period => ({
+        ...period,
+        dailyAverages: getMonthlyDailyAverages(records, month, field, period.startYear, period.endYear)
+    }));
     const canvas = document.getElementById('monthly-averages-chart');
     if (!canvas) return;
 
@@ -56,33 +76,39 @@ function renderMonthlyAveragesChart(records, month, field) {
     monthlyChartState.chart = new Chart(canvas, {
         type: 'bar',
         data: {
-            labels: dailyAverages.map(item => String(item.day)),
-            datasets: [{
-                label: `${metric.label} - ${MONTHLY_CHART_MONTH_NAMES[month - 1]}`,
-                data: dailyAverages.map(item => item.value),
-                backgroundColor: metric.color,
-                borderColor: metric.color,
+            labels: periodAverages[0].dailyAverages.map(item => String(item.day)),
+            datasets: periodAverages.map(period => ({
+                label: period.label,
+                data: period.dailyAverages.map(item => item.value),
+                backgroundColor: period.color,
+                borderColor: period.color,
                 borderWidth: 1,
                 borderRadius: 2,
                 maxBarThickness: 32
-            }]
+            }))
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { usePointStyle: true, pointStyle: 'rect' }
+                },
                 tooltip: {
                     callbacks: {
                         title: items => `${items[0].label} ${MONTHLY_CHART_MONTH_NAMES[month - 1]}`,
                         label: context => {
-                            const item = dailyAverages[context.dataIndex];
-                            if (item.value === null) return 'Brak danych';
-                            return `${metric.label}: ${item.value.toFixed(1)} ${metric.unit}`;
+                            const period = periodAverages[context.datasetIndex];
+                            const item = period.dailyAverages[context.dataIndex];
+                            if (item.value === null) return `${period.label}: brak danych`;
+                            return `${period.label}: ${item.value.toFixed(1)} ${metric.unit}`;
                         },
                         afterLabel: context => {
-                            const samples = dailyAverages[context.dataIndex].samples;
+                            const period = periodAverages[context.datasetIndex];
+                            const samples = period.dailyAverages[context.dataIndex].samples;
                             return `Liczba lat: ${samples}`;
                         }
                     }
@@ -101,19 +127,17 @@ function renderMonthlyAveragesChart(records, month, field) {
         }
     });
 
-    const years = records
+    const periodYearCounts = MONTHLY_CHART_PERIODS.map(period => new Set(records
         .filter(record => Number(record.date?.slice(5, 7)) === month)
         .filter(record => record[field] !== null && record[field] !== undefined && record[field] !== '')
         .filter(record => Number.isFinite(Number(record[field])))
         .map(record => Number(record.date.slice(0, 4)))
-        .filter(Number.isFinite);
-    const uniqueYears = [...new Set(years)];
-    const firstYear = uniqueYears.length > 0 ? Math.min(...uniqueYears) : null;
-    const lastYear = uniqueYears.length > 0 ? Math.max(...uniqueYears) : null;
+        .filter(year => year >= period.startYear && year <= period.endYear)
+    ).size);
     const status = document.getElementById('monthly-chart-status');
-    status.textContent = firstYear === null
+    status.textContent = periodYearCounts.every(count => count === 0)
         ? 'Brak danych dla wybranego miesiąca'
-        : `Średnia z ${uniqueYears.length} lat (${firstYear}-${lastYear})`;
+        : `Porównanie: 1950-1990 (${formatMonthlyYearsCount(periodYearCounts[0])}) i 1990-2026 (${formatMonthlyYearsCount(periodYearCounts[1])})`;
 }
 
 async function loadMonthlyChartTab(force = false) {
