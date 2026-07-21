@@ -10,6 +10,13 @@ const RECORD_METRICS = [
     { key: 'tempMin', title: 'Najniższa temperatura', direction: 'asc', unit: 'temperature' },
     { key: 'tempMaxAvg', title: 'Najwyższa średnia dobowa', direction: 'desc', unit: 'temperature' },
     { key: 'tempMinAvg', title: 'Najniższa średnia dobowa', direction: 'asc', unit: 'temperature' },
+    { key: 'precipitationTotal', title: 'Największe opady', direction: 'desc', unit: 'precipitation', completedPeriodsOnly: true },
+    { key: 'precipitationTotal', title: 'Najmniejsze opady', direction: 'asc', unit: 'precipitation', completedPeriodsOnly: true },
+    { key: 'windAverage', title: 'Najsilniejszy wiatr', direction: 'desc', unit: 'wind', completedPeriodsOnly: true },
+    { key: 'windAverage', title: 'Najsłabszy wiatr', direction: 'asc', unit: 'wind', completedPeriodsOnly: true },
+    { key: 'cloudAverage', title: 'Największe zachmurzenie', direction: 'desc', unit: 'cloud', completedPeriodsOnly: true },
+    { key: 'cloudAverage', title: 'Najmniejsze zachmurzenie', direction: 'asc', unit: 'cloud', completedPeriodsOnly: true },
+    { key: 'rainyDays', title: 'Najwięcej dni deszczowych (opad > 0 mm)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'daysHot', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'daysWarm', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'daysFrosty', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
@@ -115,6 +122,9 @@ function summarizeRecordPeriod(period) {
     const maxValues = validRecordValues(records, 'temp_max');
     const minValues = validRecordValues(records, 'temp_min');
     const averageValues = validRecordValues(records, 'temp_avg');
+    const precipitationValues = validRecordValues(records, 'precipitation_sum');
+    const windValues = validRecordValues(records, 'wind_speed_avg');
+    const cloudValues = validRecordValues(records, 'cloud_cover_avg');
     const ranges = records
         .filter(record => record.temp_max !== null && record.temp_max !== undefined)
         .filter(record => record.temp_min !== null && record.temp_min !== undefined)
@@ -131,6 +141,12 @@ function summarizeRecordPeriod(period) {
         tempMin: minValues.length > 0 ? Math.min(...minValues) : null,
         tempMaxAvg: averageValues.length > 0 ? Math.max(...averageValues) : null,
         tempMinAvg: averageValues.length > 0 ? Math.min(...averageValues) : null,
+        precipitationTotal: precipitationValues.length > 0
+            ? precipitationValues.reduce((sum, value) => sum + value, 0)
+            : null,
+        windAverage: recordAverage(windValues),
+        cloudAverage: recordAverage(cloudValues),
+        rainyDays: records.filter(record => Number(record.precipitation_sum) > 0).length,
         daysHot: records.filter(record => Number(record.temp_max) > 30).length,
         daysWarm: records.filter(record => Number(record.temp_max) >= 20).length,
         daysFrosty: records.filter(record => Number(record.temp_min) < 0).length,
@@ -179,6 +195,9 @@ function getTopRecordPeriods(summaries, metric) {
 
 function formatRecordValue(value, unit) {
     if (unit === 'temperature') return `${value.toFixed(1)}°C`;
+    if (unit === 'precipitation') return `${value.toFixed(1)} mm`;
+    if (unit === 'wind') return `${value.toFixed(1)} m/s`;
+    if (unit === 'cloud') return `${value.toFixed(1)}%`;
     if (unit === 'nights') return `${value} ${value === 1 ? 'noc' : 'nocy'}`;
     return `${value} ${value === 1 ? 'dzień' : 'dni'}`;
 }
@@ -218,12 +237,12 @@ function renderDailyRecordCards(records, granularity) {
     }).join('');
 }
 
-async function fetchHourlyTemperatureRecords(cityId, direction) {
+async function fetchHourlyWeatherRecords(cityId, field, direction) {
     const query = new URLSearchParams({
         city_id: `eq.${cityId}`,
-        temperature_2m: 'not.is.null',
-        select: 'forecast_time,temperature_2m',
-        order: `temperature_2m.${direction},forecast_time.desc`,
+        [field]: 'not.is.null',
+        select: `forecast_time,${field}`,
+        order: `${field}.${direction},forecast_time.desc`,
         limit: '5'
     });
     const response = await fetch(`${API_CONFIG.SUPABASE_URL}/rest/v1/weather_data?${query}`, {
@@ -236,24 +255,34 @@ async function fetchHourlyTemperatureRecords(cityId, direction) {
     return response.json();
 }
 
-function formatHourlyRecord(record) {
+function formatHourlyRecord(record, field) {
     const date = new Date(record.forecast_time);
     return {
         label: `${date.toLocaleDateString('pl-PL')}, ${String(date.getHours()).padStart(2, '0')}:00`,
-        value: Number(record.temperature_2m)
+        value: Number(record[field])
     };
 }
 
-function renderHourlyRecordCards(highest, lowest) {
-    const cards = [
-        { title: 'Najwyższe pomiary temperatury', records: highest },
-        { title: 'Najniższe pomiary temperatury', records: lowest }
+function renderHourlyRecordCards(results) {
+    const definitions = [
+        { title: 'Najwyższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
+        { title: 'Najniższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
+        { title: 'Największe opady', field: 'precipitation_6h', unit: 'precipitation' },
+        { title: 'Najmniejsze opady', field: 'precipitation_6h', unit: 'precipitation' },
+        { title: 'Najsilniejszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
+        { title: 'Najsłabszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
+        { title: 'Największe zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' },
+        { title: 'Najmniejsze zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' }
     ];
+    const cards = definitions.map((definition, index) => ({
+        ...definition,
+        records: results[index]
+    }));
     document.getElementById('records-grid').innerHTML = cards.map(card => {
-        const records = card.records.map(formatHourlyRecord);
+        const records = card.records.map(record => formatHourlyRecord(record, card.field));
         return `<article class="records-card">
             <h3>${card.title}</h3>
-            ${renderRecordRows(records, record => `${record.value.toFixed(1)}°C`)}
+            ${renderRecordRows(records, record => formatRecordValue(record.value, card.unit))}
         </article>`;
     }).join('');
 }
@@ -279,12 +308,21 @@ async function loadRecordsTab(force = false) {
 
     try {
         if (recordsState.granularity === 'hour') {
-            const [highest, lowest] = await Promise.all([
-                fetchHourlyTemperatureRecords(location.city_id, 'desc'),
-                fetchHourlyTemperatureRecords(location.city_id, 'asc')
-            ]);
+            const hourlyMetrics = [
+                ['temperature_2m', 'desc'],
+                ['temperature_2m', 'asc'],
+                ['precipitation_6h', 'desc'],
+                ['precipitation_6h', 'asc'],
+                ['wind_speed_10m', 'desc'],
+                ['wind_speed_10m', 'asc'],
+                ['cloud_cover_total', 'desc'],
+                ['cloud_cover_total', 'asc']
+            ];
+            const results = await Promise.all(hourlyMetrics.map(([field, direction]) =>
+                fetchHourlyWeatherRecords(location.city_id, field, direction)
+            ));
             if (requestId !== recordsState.requestId) return;
-            renderHourlyRecordCards(highest, lowest);
+            renderHourlyRecordCards(results);
         } else {
             const canReuseProfileData = typeof currentDailyCityId !== 'undefined'
                 && currentDailyCityId === location.city_id
