@@ -93,6 +93,22 @@ function getRecordPeriod(record, granularity) {
     };
 }
 
+function getCurrentRecordPeriodKey(granularity, now = new Date()) {
+    const year = now.getFullYear();
+
+    if (granularity === 'year') return String(year);
+    if (granularity === 'month') {
+        return `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    if (granularity === 'week') {
+        const dateString = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const iso = getIsoWeek(dateString);
+        return `${iso.year}-W${String(iso.week).padStart(2, '0')}`;
+    }
+
+    return null;
+}
+
 function summarizeRecordPeriod(period) {
     const records = period.records;
     const maxValues = validRecordValues(records, 'temp_max');
@@ -122,7 +138,7 @@ function summarizeRecordPeriod(period) {
     };
 }
 
-function groupRecordsByPeriod(records, granularity) {
+function groupRecordsByPeriod(records, granularity, now = new Date()) {
     const groups = new Map();
 
     records.forEach(record => {
@@ -136,7 +152,10 @@ function groupRecordsByPeriod(records, granularity) {
         if (record.date > group.sortKey) group.sortKey = record.date;
     });
 
-    return Array.from(groups.values()).map(summarizeRecordPeriod);
+    const currentPeriodKey = getCurrentRecordPeriodKey(granularity, now);
+    return Array.from(groups.values())
+        .filter(group => currentPeriodKey === null || group.key < currentPeriodKey)
+        .map(summarizeRecordPeriod);
 }
 
 function getTopRecordPeriods(summaries, metric) {
