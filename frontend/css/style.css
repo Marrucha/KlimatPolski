@@ -581,6 +581,36 @@ details.yearly-controls-details[open] summary {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 
+.kpi-pair {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.kpi-card--hot {
+    border-top: 4px solid #dc2626;
+}
+
+.kpi-card--warm {
+    border-top: 4px solid #f97316;
+}
+
+.kpi-card--frosty {
+    border-top: 4px solid #7dd3fc;
+}
+
+.kpi-card--glacial {
+    border-top: 4px solid #1d4ed8;
+}
+
+@media (max-width: 560px) {
+    .kpi-pair {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr;
+    }
+}
+
 .kpi-title {
     font-size: 0.85rem;
     color: var(--text-secondary);

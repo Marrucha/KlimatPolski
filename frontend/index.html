@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klimat Polski - Archiwalne dane meteorologiczne</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260721">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -243,21 +243,27 @@
                         <span class="kpi-title" data-base-title="Najniższa średnia dobowa">Najniższa średnia dobowa</span>
                         <span class="kpi-value" id="kpi-temp-min-avg">--</span>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card kpi-card--hot">
                         <span class="kpi-title" data-base-title="Dni upalne (T.Max > 30°C)">Dni upalne (T.Max &gt; 30°C)</span>
                         <span class="kpi-value" id="kpi-days-hot">--</span>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card kpi-card--warm">
                         <span class="kpi-title" data-base-title="Dni ciepłe (T.Max >= 20°C)">Dni ciepłe (T.Max &ge; 20°C)</span>
                         <span class="kpi-value" id="kpi-days-cool">--</span>
+                    </div>
+                    <div class="kpi-pair">
+                        <div class="kpi-card kpi-card--frosty">
+                            <span class="kpi-title" data-base-title="Dni mroźne (T.Max < 0°C)">Dni mroźne (T.Max &lt; 0°C)</span>
+                            <span class="kpi-value" id="kpi-days-frosty">--</span>
+                        </div>
+                        <div class="kpi-card kpi-card--glacial">
+                            <span class="kpi-title" data-base-title="Dni bardzo mroźne (T.Min < -10°C)">Dni bardzo mroźne (T.Min &lt; -10°C)</span>
+                            <span class="kpi-value" id="kpi-days-glacial">--</span>
+                        </div>
                     </div>
                     <div class="kpi-card">
                         <span class="kpi-title" data-base-title="Noce tropikalne (T.Min >= 20°C)">Noce tropikalne (T.Min &ge; 20°C)</span>
                         <span class="kpi-value" id="kpi-days-tropical">--</span>
-                    </div>
-                    <div class="kpi-card">
-                        <span class="kpi-title" data-base-title="Dni bardzo mroźne (T.Max <= -10°C)">Dni bardzo mroźne (T.Max &le; -10°C)</span>
-                        <span class="kpi-value" id="kpi-days-glacial">--</span>
                     </div>
                     <div class="kpi-card">
                         <span class="kpi-title" data-base-title="Maks. dobowa amplituda">Maks. dobowa amplituda</span>
@@ -413,9 +419,9 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/charts.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/api.js?v=20260721"></script>
+    <script src="js/charts.js?v=20260721"></script>
+    <script src="js/map.js?v=20260721"></script>
+    <script src="js/main.js?v=20260721"></script>
 </body>
 </html>

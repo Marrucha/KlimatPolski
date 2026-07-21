@@ -1006,6 +1006,7 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
         tempMedian: {},
         daysHot: {},
         daysCool: {},
+        daysFrosty: {},
         daysTropical: {},
         daysGlacial: {},
         maxDiurnalRange: {}
@@ -1092,10 +1093,13 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
         const warmDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max >= 20).length;
         kpis.daysCool[key] = formatPolishUnit(warmDays / yearsCount, 'day');
 
+        const frostyDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max < 0).length;
+        kpis.daysFrosty[key] = formatPolishUnit(frostyDays / yearsCount, 'day');
+
         const tropicalNights = records.filter(r => r.temp_min !== null && r.temp_min !== undefined && r.temp_min >= 20).length;
         kpis.daysTropical[key] = formatPolishUnit(tropicalNights / yearsCount, 'night');
 
-        const glacialDays = records.filter(r => r.temp_max !== null && r.temp_max !== undefined && r.temp_max <= -10).length;
+        const glacialDays = records.filter(r => r.temp_min !== null && r.temp_min !== undefined && r.temp_min < -10).length;
         kpis.daysGlacial[key] = formatPolishUnit(glacialDays / yearsCount, 'day');
 
         const diurnalRanges = records
@@ -1124,6 +1128,7 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
     document.getElementById('kpi-temp-median').innerHTML = renderKpiRows(kpis.tempMedian);
     document.getElementById('kpi-days-hot').innerHTML = renderKpiRows(kpis.daysHot);
     document.getElementById('kpi-days-cool').innerHTML = renderKpiRows(kpis.daysCool);
+    document.getElementById('kpi-days-frosty').innerHTML = renderKpiRows(kpis.daysFrosty);
     document.getElementById('kpi-days-tropical').innerHTML = renderKpiRows(kpis.daysTropical);
     document.getElementById('kpi-days-glacial').innerHTML = renderKpiRows(kpis.daysGlacial);
     document.getElementById('kpi-max-diurnal-range').innerHTML = renderKpiRows(kpis.maxDiurnalRange);
