@@ -359,6 +359,8 @@ function drawYearlyComparisonChart(canvasId, stats, measure, config) {
         refLabelType = 'Minimum';
     }
 
+    const decadeAggregateFn = (values) => values.reduce((a, b) => a + b, 0) / values.length;
+
 
 
     if (config.showDecades) {
@@ -402,12 +404,12 @@ function drawYearlyComparisonChart(canvasId, stats, measure, config) {
                     }
                 });
                 if (values.length > 0) {
-                    decadeData[day] = aggregateFn(values);
+                    decadeData[day] = decadeAggregateFn(values);
                 }
             }
 
             datasets.push({
-                label: `${decadeName} (${refLabelType})`,
+                label: `${decadeName} (Średnia)`,
                 data: decadeData,
                 borderColor: color,
                 borderWidth: 1.2, // Cieniutka linia dla dekady

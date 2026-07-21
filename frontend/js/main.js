@@ -993,6 +993,10 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
             : (sorted[mid - 1] + sorted[mid]) / 2;
     };
 
+    const calculateAverage = (arr) => arr.length > 0
+        ? arr.reduce((sum, value) => sum + value, 0) / arr.length
+        : null;
+
     const kpis = {
         tempMax: {},
         tempMin: {},
@@ -1013,10 +1017,44 @@ function updateKPIs(filteredRecords, numYears, showDecades) {
         const validMin = records.map(r => r.temp_min).filter(v => v !== null && v !== undefined);
         const validAvg = records.map(r => r.temp_avg).filter(v => v !== null && v !== undefined);
 
-        kpis.tempMax[key] = validMax.length > 0 ? Math.max(...validMax).toFixed(1) + '°C' : '--';
-        kpis.tempMin[key] = validMin.length > 0 ? Math.min(...validMin).toFixed(1) + '°C' : '--';
-        kpis.tempMaxAvg[key] = validAvg.length > 0 ? Math.max(...validAvg).toFixed(1) + '°C' : '--';
-        kpis.tempMinAvg[key] = validAvg.length > 0 ? Math.min(...validAvg).toFixed(1) + '°C' : '--';
+        let tempMax = validMax.length > 0 ? Math.max(...validMax) : null;
+        let tempMin = validMin.length > 0 ? Math.min(...validMin) : null;
+        let tempMaxAvg = validAvg.length > 0 ? Math.max(...validAvg) : null;
+        let tempMinAvg = validAvg.length > 0 ? Math.min(...validAvg) : null;
+
+        if (showDecades) {
+            const recordsByYear = {};
+            records.forEach(record => {
+                const year = new Date(record.date).getFullYear();
+                if (!recordsByYear[year]) recordsByYear[year] = [];
+                recordsByYear[year].push(record);
+            });
+
+            const yearlyExtremes = Object.values(recordsByYear).map(yearRecords => {
+                const yearlyMax = yearRecords.map(r => r.temp_max).filter(v => v !== null && v !== undefined);
+                const yearlyMin = yearRecords.map(r => r.temp_min).filter(v => v !== null && v !== undefined);
+                const yearlyAvg = yearRecords.map(r => r.temp_avg).filter(v => v !== null && v !== undefined);
+                return {
+                    tempMax: yearlyMax.length > 0 ? Math.max(...yearlyMax) : null,
+                    tempMin: yearlyMin.length > 0 ? Math.min(...yearlyMin) : null,
+                    tempMaxAvg: yearlyAvg.length > 0 ? Math.max(...yearlyAvg) : null,
+                    tempMinAvg: yearlyAvg.length > 0 ? Math.min(...yearlyAvg) : null
+                };
+            });
+
+            const averageYearlyMetric = (metric) => calculateAverage(
+                yearlyExtremes.map(values => values[metric]).filter(value => value !== null)
+            );
+            tempMax = averageYearlyMetric('tempMax');
+            tempMin = averageYearlyMetric('tempMin');
+            tempMaxAvg = averageYearlyMetric('tempMaxAvg');
+            tempMinAvg = averageYearlyMetric('tempMinAvg');
+        }
+
+        kpis.tempMax[key] = tempMax !== null ? tempMax.toFixed(1) + '°C' : '--';
+        kpis.tempMin[key] = tempMin !== null ? tempMin.toFixed(1) + '°C' : '--';
+        kpis.tempMaxAvg[key] = tempMaxAvg !== null ? tempMaxAvg.toFixed(1) + '°C' : '--';
+        kpis.tempMinAvg[key] = tempMinAvg !== null ? tempMinAvg.toFixed(1) + '°C' : '--';
         kpis.tempYearAvg[key] = validAvg.length > 0 ? (validAvg.reduce((a, b) => a + b, 0) / validAvg.length).toFixed(1) + '°C' : '--';
         
         const med = calculateMedian(validAvg);
