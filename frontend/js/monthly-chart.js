@@ -178,6 +178,7 @@ function renderMonthlyAveragesChart(records, month, field) {
         borderWidth: 1,
         borderRadius: 2,
         maxBarThickness: 32,
+        yAxisID: 'y',
         order: 2
     }));
     if (showDelta) {
@@ -193,6 +194,7 @@ function renderMonthlyAveragesChart(records, month, field) {
             tension: 0.15,
             spanGaps: false,
             isDelta: true,
+            yAxisID: 'yDelta',
             order: 1
         });
     }
@@ -248,6 +250,14 @@ function renderMonthlyAveragesChart(records, month, field) {
                 y: {
                     beginAtZero: metric.beginAtZero,
                     title: { display: true, text: `${metric.label} (${metric.unit})` }
+                },
+                yDelta: {
+                    display: showDelta,
+                    position: 'right',
+                    beginAtZero: false,
+                    grace: '10%',
+                    grid: { drawOnChartArea: false },
+                    title: { display: showDelta, text: `Delta (${metric.unit})` }
                 }
             }
         }
