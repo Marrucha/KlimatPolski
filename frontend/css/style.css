@@ -283,6 +283,7 @@ body {
 /* === TABS === */
 .tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
     background-color: var(--card-bg);
     border-radius: 0.5rem;
@@ -293,6 +294,7 @@ body {
 }
 
 .tab-btn {
+    flex: 1 1 auto;
     padding: 0.5rem 1rem;
     background: transparent;
     border: none;
@@ -633,6 +635,172 @@ details.yearly-controls-details[open] summary {
     line-height: 1.4;
     border-bottom: 1px dashed var(--border-color);
     padding: 0.18rem 0;
+}
+
+/* === REKORDY KLIMATYCZNE === */
+.records-section {
+    margin-bottom: 3rem;
+}
+
+.records-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.records-header h2 {
+    font-size: 1.5rem;
+}
+
+.records-location-control label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.records-location-control select {
+    min-width: 220px;
+}
+
+.records-granularity {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    background-color: var(--card-bg);
+}
+
+.records-period-btn {
+    min-height: 42px;
+    padding: 0.55rem 0.75rem;
+    border: 0;
+    border-right: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.records-period-btn:last-child {
+    border-right: 0;
+}
+
+.records-period-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+}
+
+.records-period-btn.active {
+    background-color: var(--primary-color);
+    color: #ffffff;
+}
+
+.records-status {
+    padding: 2rem 0;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.records-status.hidden {
+    display: none;
+}
+
+.records-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+    gap: 1rem;
+}
+
+.records-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.records-card h3 {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.records-list {
+    list-style: none;
+}
+
+.records-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 44px;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.records-row:last-child {
+    border-bottom: 0;
+}
+
+.records-rank {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.records-period-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.records-value {
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.records-empty {
+    padding: 1.25rem 1rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .records-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .records-location-control select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .records-granularity {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+    }
+
+    .records-period-btn {
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .records-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* === KAFELKI KPI ROZWIJALNE (rozbicie na godziny pomiaru) === */

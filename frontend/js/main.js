@@ -480,6 +480,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
                 }
             }, 50);
         }
+
+        if (tabId === 'tab-records' && typeof loadRecordsTab === 'function') {
+            loadRecordsTab();
+        }
     });
 });
 
@@ -487,7 +491,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 async function initializeLocationSelects() {
     const cities = await getAvailableLocations();
 
-    [document.getElementById('raw-location-select'), document.getElementById('daily-location-select')].forEach(select => {
+    [
+        document.getElementById('raw-location-select'),
+        document.getElementById('daily-location-select'),
+        document.getElementById('records-location-select')
+    ].forEach(select => {
         if (select) {
             select.innerHTML = '<option value="">-- Wybierz --</option>';
             cities.forEach(city => {
@@ -512,6 +520,8 @@ async function initializeLocationSelects() {
         }
         if (opt) {
             dailySelect.value = opt.value;
+            const recordsSelect = document.getElementById('records-location-select');
+            if (recordsSelect) recordsSelect.value = opt.value;
 
             if (saved) {
                 if (saved.measure) document.getElementById('daily-measure-select').value = saved.measure;
@@ -536,6 +546,7 @@ function syncLocationSelects(sourceSelect) {
     document.getElementById('location-select').value = locationValue;
     document.getElementById('raw-location-select').value = locationValue;
     document.getElementById('daily-location-select').value = locationValue;
+    document.getElementById('records-location-select').value = locationValue;
 }
 
 function syncDateRange() {
@@ -567,6 +578,7 @@ function syncYearFromMainDate() {
 document.getElementById('location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('raw-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('daily-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
+document.getElementById('records-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
 document.getElementById('raw-date-from')?.addEventListener('change', syncDateRange);
 document.getElementById('date-picker')?.addEventListener('change', syncYearFromMainDate);
 

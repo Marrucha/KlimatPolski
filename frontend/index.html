@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klimat Polski - Archiwalne dane meteorologiczne</title>
-    <link rel="stylesheet" href="css/style.css?v=20260721-2">
+    <link rel="stylesheet" href="css/style.css?v=20260721-3">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -17,6 +17,7 @@
             </div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="tab-daily-kpis">Wskaźniki KPI</button>
+                <button class="tab-btn" data-tab="tab-records">Rekordy</button>
                 <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
                 <button class="tab-btn" data-tab="tab-weather">Pogoda bieżąca</button>
                 <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
@@ -293,6 +294,32 @@
             </section>
         </div>
 
+        <!-- TAB: Rekordy -->
+        <div id="tab-records" class="tab-content">
+            <section class="records-section">
+                <div class="records-header">
+                    <h2>Rekordy klimatyczne</h2>
+                    <div class="control-group records-location-control">
+                        <label for="records-location-select">Lokalizacja</label>
+                        <select id="records-location-select">
+                            <option value="">-- Załaduj lokalizacje --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="records-granularity" role="group" aria-label="Zakres rekordów">
+                    <button type="button" class="records-period-btn active" data-period="year" aria-pressed="true">Roczne</button>
+                    <button type="button" class="records-period-btn" data-period="month" aria-pressed="false">Miesięczne</button>
+                    <button type="button" class="records-period-btn" data-period="week" aria-pressed="false">Tygodniowe</button>
+                    <button type="button" class="records-period-btn" data-period="day" aria-pressed="false">Dzienne</button>
+                    <button type="button" class="records-period-btn" data-period="hour" aria-pressed="false">Godzinowe</button>
+                </div>
+
+                <div id="records-status" class="records-status">Wybierz lokalizację</div>
+                <div id="records-grid" class="records-grid"></div>
+            </section>
+        </div>
+
         <!-- TAB 3: Pogoda bieżąca -->
         <div id="tab-weather" class="tab-content">
             <!-- Panel kontrolny -->
@@ -419,9 +446,10 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260721-2"></script>
-    <script src="js/charts.js?v=20260721-2"></script>
-    <script src="js/map.js?v=20260721-2"></script>
-    <script src="js/main.js?v=20260721-2"></script>
+    <script src="js/api.js?v=20260721-3"></script>
+    <script src="js/charts.js?v=20260721-3"></script>
+    <script src="js/map.js?v=20260721-3"></script>
+    <script src="js/main.js?v=20260721-3"></script>
+    <script src="js/records.js?v=20260721-3"></script>
 </body>
 </html>
