@@ -17,7 +17,7 @@ const MONTHLY_CHART_MONTH_NAMES = [
 ];
 
 const MONTHLY_CHART_PERIODS = [
-    { label: '1950-1990', startYear: 1950, endYear: 1990, color: '#2563eb' },
+    { label: '1950-1989', startYear: 1950, endYear: 1989, color: '#2563eb' },
     { label: '1990-2026', startYear: 1990, endYear: 2026, color: '#dc2626' }
 ];
 
@@ -137,7 +137,7 @@ function renderMonthlyAveragesChart(records, month, field) {
     const status = document.getElementById('monthly-chart-status');
     status.textContent = periodYearCounts.every(count => count === 0)
         ? 'Brak danych dla wybranego miesiąca'
-        : `Porównanie: 1950-1990 (${formatMonthlyYearsCount(periodYearCounts[0])}) i 1990-2026 (${formatMonthlyYearsCount(periodYearCounts[1])})`;
+        : `Porównanie: 1950-1989 (${formatMonthlyYearsCount(periodYearCounts[0])}) i 1990-2026 (${formatMonthlyYearsCount(periodYearCounts[1])})`;
 }
 
 async function loadMonthlyChartTab(force = false) {
