@@ -33,31 +33,66 @@ class ERDDAPClient:
             xarray.Dataset ze zmiennymi meteorologicznymi
         """
         import pandas as pd
+        import random
+        import math
+        from datetime import time as dt_time
+        from src.supabase_client import SupabaseClient
 
-        self.logger.info(f"Pobieranie danych GFS dla okresu (MOCK DATA - MVP)")
+        self.logger.info(f"Pobieranie danych GFS dla okresu (MOCK DATA dla Warszawy, Wrocławia i Włodawy)")
 
-        # MVP: Mock data dla Lubelszczyzny
-        lats = [50.5, 51.0, 51.5, 52.0]
-        lons = [22.0, 22.5, 23.0, 23.5, 24.0]
-        times = [datetime.utcnow() - timedelta(hours=i) for i in range(24)]
+        supabase = SupabaseClient()
+        cities = []
+        try:
+            if supabase.connect():
+                all_cities = supabase.get_records("cities", "select=id,name,latitude,longitude")
+                # Filtrujemy tylko: Warszawa (37), Wrocław (39), Włodawa (1)
+                cities = [c for c in all_cities if c.get('id') in [1, 37, 39] or c.get('name') in ['Warszawa', 'Wrocław', 'Włodawa']]
+                supabase.close()
+        except Exception as e:
+            self.logger.warning(f"Nie udało się pobrać miast z Supabase: {e}")
+
+        # Fallback na wypadek braku połączenia lub pustej bazy
+        if not cities:
+            cities = [
+                {"id": 37, "name": "Warszawa", "latitude": 52.25, "longitude": 21.0},
+                {"id": 1, "name": "Włodawa", "latitude": 51.5, "longitude": 23.5},
+                {"id": 39, "name": "Wrocław", "latitude": 51.0, "longitude": 17.0},
+            ]
+
+        # Oblicz daty dla ostatnich 8 godzin pomiarowych (0, 3, 6, 9, 12, 15, 18, 21) z wczoraj i dzisiaj
+        base_date = datetime.utcnow().date()
+        times = []
+        for day_offset in [-1, 0]:
+            day = base_date + timedelta(days=day_offset)
+            for hour in [0, 3, 6, 9, 12, 15, 18, 21]:
+                dt = datetime.combine(day, dt_time(hour=hour))
+                # Unikaj generowania godzin z przyszłości
+                if dt <= datetime.utcnow():
+                    times.append(dt)
 
         records = []
         for t in times:
-            for lat in lats:
-                for lon in lons:
-                    records.append({
-                        'time': t,
-                        'latitude': lat,
-                        'longitude': lon,
-                        'air_temperature': 15.0 + lat * 0.1,  # Mock: temp depends on lat
-                        'eastward_wind': 3.5,
-                        'northward_wind': 2.1,
-                        'Total_precipitation': 0.5,
-                        'Cloud_cover_total': 45.0
-                    })
+            for city in cities:
+                lat = city['latitude']
+                lon = city['longitude']
+                # Symulacja realistycznej temperatury dobowej i zależności od szerokości geograficznej
+                temp_base = 14.0 + (52.0 - lat) * 2.0  # cieplej na południu
+                hour_factor = -math.cos((t.hour - 3) * math.pi / 12) * 5.0  # dobowy cykl temperatury (min o 3:00, max o 15:00)
+                temp = temp_base + hour_factor + random.uniform(-1.5, 1.5)
+
+                records.append({
+                    'time': t,
+                    'latitude': lat,
+                    'longitude': lon,
+                    'air_temperature': round(temp, 1),
+                    'eastward_wind': round(random.uniform(-3, 3), 1),
+                    'northward_wind': round(random.uniform(-3, 3), 1),
+                    'Total_precipitation': round(max(0.0, random.uniform(-2, 1)), 1),
+                    'Cloud_cover_total': round(random.uniform(0, 100), 0)
+                })
 
         df = pd.DataFrame(records)
-        self.logger.info(f"✓ Mock dane: {len(df)} rekordów dla Lubelszczyzny")
+        self.logger.info(f"✓ Mock dane: {len(df)} rekordów dla {len(cities)} miast")
 
         # Konwertuj do xarray
         ds = xr.Dataset.from_dataframe(df.set_index(['time', 'latitude', 'longitude']))

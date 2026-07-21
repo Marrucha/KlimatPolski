@@ -1,0 +1,58 @@
+name: Delete Latest Day and Re-run Daily Fetch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Delete latest day from DB
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+        run: |
+          python -c "
+          import requests
+          url = '${{ secrets.SUPABASE_URL }}'
+          key = '${{ secrets.SUPABASE_API_KEY }}'
+          headers = {'apikey': key, 'Content-Type': 'application/json'}
+          
+          # Find the latest date in daily_stats
+          resp = requests.get(f'{url}/rest/v1/daily_stats?order=date.desc&limit=1', headers=headers)
+          if resp.status_code == 200 and resp.json():
+              latest_date = resp.json()[0]['date']
+              print(f'Deleting data for date: {latest_date}')
+              # Delete from daily_stats
+              d_resp = requests.delete(f'{url}/rest/v1/daily_stats?date=eq.{latest_date}', headers=headers)
+              print(f'Delete daily_stats status: {d_resp.status_code}')
+              # Delete from weather_data
+              w_resp = requests.delete(f'{url}/rest/v1/weather_data?forecast_time=gte.{latest_date}T00:00:00Z&forecast_time=lte.{latest_date}T23:59:59Z', headers=headers)
+              print(f'Delete weather_data status: {w_resp.status_code}')
+              print('Successfully deleted latest day data.')
+          else:
+              print('No daily stats found to delete or request failed.')
+          "
+
+      - name: Run daily weather fetcher
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          LOG_LEVEL: INFO
+        run: |
+          python scripts/fetch_data.py

@@ -1,0 +1,35 @@
+name: Backfill Daily Stats
+
+on:
+  workflow_dispatch:
+    inputs:
+      city_id:
+        description: "ID miasta (np. 39) lub 'all'"
+        required: true
+        default: 'all'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backfill script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+        run: |
+          python scripts/backfill_daily_stats.py --city-id "${{ github.event.inputs.city_id }}"
