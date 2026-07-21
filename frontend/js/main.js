@@ -220,7 +220,7 @@ function displayHourlyBreakdown(dayRecords) {
         .filter(r => r.temperature_2m !== null && r.temperature_2m !== undefined)
         .sort((a, b) => a.forecast_time.localeCompare(b.forecast_time))
         .map(r => {
-            const hour = r.forecast_time.split('T')[1].substring(0, 5);
+            const hour = String(new Date(r.forecast_time).getHours()).padStart(2, '0') + ':00';
             return `<div class="hourly-row"><span>${hour}</span><span>${r.temperature_2m.toFixed(1)}°C</span></div>`;
         })
         .join('');
@@ -299,7 +299,7 @@ function computeHourlyMetric(records, metric) {
     const buckets = {};
     records.forEach(r => {
         if (r.temperature_2m === null || r.temperature_2m === undefined || !r.forecast_time) return;
-        const hour = r.forecast_time.split('T')[1].substring(0, 2);
+        const hour = String(new Date(r.forecast_time).getHours()).padStart(2, '0');
         if (!buckets[hour]) buckets[hour] = [];
         buckets[hour].push(r.temperature_2m);
     });
@@ -322,8 +322,6 @@ const KPI_METRIC_LABELS = {
     median: 'Mediana okresu'
 };
 
-const ALL_REPORT_HOURS = ['00', '03', '06', '09', '12', '15', '18', '21'];
-
 function openKpiHourlyModal() {
     document.getElementById('kpi-hourly-modal')?.classList.remove('hidden');
 }
@@ -344,7 +342,14 @@ document.addEventListener('keydown', (e) => {
  * Buduje tabelę porównawczą: wiersze - lata, kolumny - godziny raportu (00-21)
  */
 function renderHourlyComparisonTable(yearToHourlyStats) {
-    const headerCells = ALL_REPORT_HOURS.map(h => `<th>${h}:00</th>`).join('');
+    // Godziny UTC pobierania (00/06/12/18 lub 03/09/15/21) po przeliczeniu na czas
+    // lokalny przesuwają się o strefę (+1 zimą / +2 latem) - kolumny wyznaczamy
+    // dynamicznie z faktycznie napotkanych godzin, żeby nagłówki zawsze pokazywały
+    // czas lokalny zgodny z danymi w wierszach.
+    const reportHours = Array.from(new Set(
+        Object.values(yearToHourlyStats).flatMap(hourlyStats => hourlyStats.map(h => h.hour))
+    )).sort();
+    const headerCells = reportHours.map(h => `<th>${h}:00</th>`).join('');
 
     // Wartości po kolumnach (godzinach), do wyznaczenia max/min w każdej kolumnie
     const byHourPerYear = Object.entries(yearToHourlyStats).map(([year, hourlyStats]) => {
@@ -354,7 +359,7 @@ function renderHourlyComparisonTable(yearToHourlyStats) {
     });
 
     const columnExtremes = {};
-    ALL_REPORT_HOURS.forEach(h => {
+    reportHours.forEach(h => {
         const values = byHourPerYear.map(row => row.byHour[h]).filter(v => v !== undefined && v !== null);
         columnExtremes[h] = {
             max: values.length > 0 ? Math.max(...values) : null,
@@ -363,7 +368,7 @@ function renderHourlyComparisonTable(yearToHourlyStats) {
     });
 
     const bodyRows = byHourPerYear.map(({ year, byHour }) => {
-        const cells = ALL_REPORT_HOURS.map(h => {
+        const cells = reportHours.map(h => {
             const v = byHour[h];
             if (v === undefined || v === null) return '<td>--</td>';
 
@@ -605,7 +610,7 @@ function displayRawDataTable(records) {
         return;
     }
 
-    let html = `<table><thead><tr><th>Data</th><th>Godzina</th><th>Temp (°C)</th><th>Wiatr (m/s)</th><th>Kierunek (°)</th><th>Opady (mm)</th><th>Chmury (%)</th></tr></thead><tbody>`;
+    let html = `<table><thead><tr><th>Data</th><th>Godzina (czas lok.)</th><th>Temp (°C)</th><th>Wiatr (m/s)</th><th>Kierunek (°)</th><th>Opady (mm)</th><th>Chmury (%)</th></tr></thead><tbody>`;
     records.forEach(r => {
         const date = new Date(r.forecast_time);
         html += `<tr><td>${date.toLocaleDateString('pl-PL')}</td><td>${String(date.getHours()).padStart(2, '0')}:00</td><td>${(r.temperature_2m || 0).toFixed(1)}</td><td>${(r.wind_speed_10m || 0).toFixed(1)}</td><td>${(r.wind_direction_10m || 0).toFixed(0)}</td><td>${(r.precipitation_6h || 0).toFixed(1)}</td><td>${(r.cloud_cover_total || 0).toFixed(0)}</td></tr>`;
