@@ -31,6 +31,11 @@ const RECORD_MONTH_NAMES = [
     'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'
 ];
 
+const RECORD_MONTH_NAMES_GENITIVE = [
+    'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+    'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+];
+
 const recordsState = {
     granularity: 'year',
     cityId: null,
@@ -70,6 +75,30 @@ function getIsoWeek(dateString) {
     return { year: isoYear, week };
 }
 
+function getWeekDateRangeLabel(dateString) {
+    const date = new Date(`${dateString}T12:00:00`);
+    const day = date.getDay() || 7;
+    const start = new Date(date);
+    start.setDate(date.getDate() - day + 1);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const startMonth = RECORD_MONTH_NAMES_GENITIVE[start.getMonth()];
+    const endMonth = RECORD_MONTH_NAMES_GENITIVE[end.getMonth()];
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    if (startYear !== endYear) {
+        return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+    }
+    if (start.getMonth() !== end.getMonth()) {
+        return `${startDay} ${startMonth} - ${endDay} ${endMonth}, ${endYear}`;
+    }
+    return `${startDay}-${endDay} ${endMonth}, ${endYear}`;
+}
+
 function getRecordPeriod(record, granularity) {
     const dateString = record.date;
     const [year, month] = dateString.split('-').map(Number);
@@ -90,7 +119,7 @@ function getRecordPeriod(record, granularity) {
         const iso = getIsoWeek(dateString);
         return {
             key: `${iso.year}-W${String(iso.week).padStart(2, '0')}`,
-            label: `tydzień ${iso.week}, ${iso.year}`,
+            label: getWeekDateRangeLabel(dateString),
             sortKey: dateString
         };
     }
