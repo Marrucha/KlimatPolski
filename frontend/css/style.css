@@ -663,10 +663,18 @@ details.yearly-controls-details[open] summary {
 }
 
 .monthly-chart-wrapper {
-    position: relative;
     width: 100%;
     height: 520px;
     min-height: 360px;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.monthly-chart-frame {
+    position: relative;
+    width: 100%;
+    min-width: 960px;
+    height: 100%;
 }
 
 @media (max-width: 768px) {

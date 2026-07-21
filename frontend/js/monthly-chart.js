@@ -23,6 +23,29 @@ const MONTHLY_CHART_PERIODS = [
 
 const MONTHLY_CHART_DECADE_COLORS = ['#2563eb', '#dc2626', '#0f766e'];
 
+const MONTHLY_DELTA_LABELS_PLUGIN = {
+    id: 'monthlyDeltaLabels',
+    afterDatasetsDraw(chart) {
+        const datasetIndex = chart.data.datasets.findIndex(dataset => dataset.isDelta);
+        if (datasetIndex < 0) return;
+        const dataset = chart.data.datasets[datasetIndex];
+        const points = chart.getDatasetMeta(datasetIndex).data;
+        const ctx = chart.ctx;
+
+        ctx.save();
+        ctx.font = '700 8px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+        dataset.data.forEach((value, index) => {
+            if (value === null || !points[index]) return;
+            const sign = value > 0 ? '+' : '';
+            ctx.fillText(`${sign}${value.toFixed(1)}`, points[index].x, points[index].y);
+        });
+        ctx.restore();
+    }
+};
+
 const monthlyChartState = {
     cityId: null,
     records: null,
@@ -182,15 +205,27 @@ function renderMonthlyAveragesChart(records, month, field) {
         order: 2
     }));
     if (showDelta) {
+        const deltaValues = getMonthlyDeltaValues(
+            periodAverages[0].dailyAverages,
+            periodAverages[1].dailyAverages
+        );
+        const deltaPointColors = deltaValues.map(value => {
+            if (value === null || value === 0) return '#475569';
+            return value > 0 ? periods[1].color : periods[0].color;
+        });
         datasets.push({
             type: 'line',
             label: `Delta (${periods[1].label} - ${periods[0].label})`,
-            data: getMonthlyDeltaValues(periodAverages[0].dailyAverages, periodAverages[1].dailyAverages),
+            data: deltaValues,
             borderColor: '#111827',
             backgroundColor: '#111827',
             borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 4,
+            pointBackgroundColor: deltaPointColors,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.5,
+            pointRadius: 11,
+            pointHoverRadius: 13,
+            pointHitRadius: 4,
             tension: 0.15,
             spanGaps: false,
             isDelta: true,
@@ -260,7 +295,8 @@ function renderMonthlyAveragesChart(records, month, field) {
                     title: { display: showDelta, text: `Delta (${metric.unit})` }
                 }
             }
-        }
+        },
+        plugins: [MONTHLY_DELTA_LABELS_PLUGIN]
     });
 
     const periodYearCounts = periods.map(period => new Set(records
