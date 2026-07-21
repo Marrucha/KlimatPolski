@@ -17,6 +17,7 @@ const RECORD_METRICS = [
     { key: 'cloudAverage', title: 'Największe zachmurzenie', direction: 'desc', unit: 'cloud', completedPeriodsOnly: true },
     { key: 'cloudAverage', title: 'Najmniejsze zachmurzenie', direction: 'asc', unit: 'cloud', completedPeriodsOnly: true },
     { key: 'rainyDays', title: 'Najwięcej dni deszczowych (opad > 0 mm)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'rainyDays', title: 'Najmniej dni deszczowych (opad > 0 mm)', direction: 'asc', unit: 'days', completedPeriodsOnly: true },
     { key: 'daysHot', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'daysWarm', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
     { key: 'daysFrosty', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
