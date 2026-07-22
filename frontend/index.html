@@ -117,7 +117,7 @@
                         </select>
                     </div>
 
-                    <div class="control-group">
+                    <div class="control-group chart-only-control-group">
                         <label for="daily-measure-select">Wybierz miarę:</label>
                         <select id="daily-measure-select">
                             <option value="temp_avg">Temperatura (średnia)</option>
@@ -132,7 +132,7 @@
                     <button id="load-daily-stats-btn" class="btn-primary">Załaduj dane profilu</button>
                 </div>
 
-                <div class="control-row options-row chart-only-controls hidden">
+                <div class="control-row options-row chart-only-control-group">
                     <div class="control-group flex-row">
                         <input type="checkbox" id="show-historical-bg" checked />
                         <label for="show-historical-bg">Pokaż lata w tle</label>
@@ -164,14 +164,14 @@
                     </div>
                 </div>
 
-                <div class="control-row options-row chart-only-controls hidden">
+                <div class="control-row options-row">
                     <div class="control-group flex-row">
                         <input type="checkbox" id="show-decades" />
                         <label for="show-decades"><strong>Pokaż jako średnie dekadami</strong></label>
                     </div>
                 </div>
 
-                <details class="control-row years-row hidden chart-only-controls" id="highlight-years-container" open>
+                <details class="control-row years-row hidden" id="highlight-years-container" open>
                     <summary><strong id="highlight-years-label">Wyróżnione lata</strong>:<span id="highlight-years-summary-text"> (kliknij, aby zwinąć)</span></summary>
                     <div id="highlight-years-list" class="checkbox-list">
                         <!-- Dynamicznie generowane lata -->
@@ -511,11 +511,11 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260722-30"></script>
-    <script src="js/charts.js?v=20260722-30"></script>
-    <script src="js/map.js?v=20260722-30"></script>
-    <script src="js/main.js?v=20260722-30"></script>
-    <script src="js/records.js?v=20260722-30"></script>
-    <script src="js/monthly-chart.js?v=20260722-30"></script>
+    <script src="js/api.js?v=20260722-40"></script>
+    <script src="js/charts.js?v=20260722-40"></script>
+    <script src="js/map.js?v=20260722-40"></script>
+    <script src="js/main.js?v=20260722-40"></script>
+    <script src="js/records.js?v=20260722-40"></script>
+    <script src="js/monthly-chart.js?v=20260722-40"></script>
 </body>
 </html>

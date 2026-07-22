@@ -470,13 +470,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (controlsContainer) {
             controlsContainer.classList.toggle('hidden', !isYearlyTab);
         }
-        document.querySelectorAll('.chart-only-controls').forEach(el => {
-            if (el.id === 'highlight-years-container') {
-                const showDecades = document.getElementById('show-decades')?.checked;
-                el.classList.toggle('hidden', tabId !== 'tab-daily-chart' || showDecades);
-            } else {
-                el.classList.toggle('hidden', tabId !== 'tab-daily-chart');
-            }
+        document.querySelectorAll('.chart-only-control-group').forEach(el => {
+            el.classList.toggle('hidden', tabId !== 'tab-daily-chart');
         });
         updateYearlyControlsSummary();
 
@@ -1217,8 +1212,40 @@ function updateYearlyControlsSummary() {
         const measureSelect = document.getElementById('daily-measure-select');
         const measure = measureSelect ? measureSelect.options[measureSelect.selectedIndex]?.text : '--';
 
+        // Lata / Dekady (kolorowanie pasujące do wyboru)
+        const showDecades = document.getElementById('show-decades')?.checked ?? false;
+        const selectedItems = [];
+        const checkboxes = document.querySelectorAll('#highlight-years-list input[type="checkbox"]:checked');
+        checkboxes.forEach(cb => {
+            const label = document.querySelector(`label[for="${cb.id}"]`)?.textContent;
+            if (label) selectedItems.push({ value: cb.value, text: label });
+        });
+
+        // Sortowanie malejąco
+        selectedItems.sort((a, b) => b.value.localeCompare(a.value, undefined, { numeric: true }));
+
+        let modeHtml = '';
+        if (showDecades) {
+            const decadeColors = {
+                "2020s": '#dc2626', "2010s": '#ea580c', "2000s": '#d97706', "1990s": '#16a34a',
+                "1980s": '#2563eb', "1970s": '#4f46e5', "1960s": '#9333ea', "1950s": '#db2777'
+            };
+            const coloredItems = selectedItems.map(item => {
+                const color = decadeColors[item.value] || '#6b7280';
+                return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
+            });
+            modeHtml = `Dekady: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
+        } else {
+            const yearColors = ['#dc2626', '#ea580c', '#d97706', '#16a34a', '#2563eb', '#4f46e5', '#9333ea', '#db2777'];
+            const coloredItems = selectedItems.map((item, idx) => {
+                const color = yearColors[idx] || '#2563eb';
+                return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
+            });
+            modeHtml = `Lata: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
+        }
+
         if (isKpiTab) {
-            textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; <span class="summary-measure">${measure}</span>`;
+            textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; <strong>${modeHtml}</strong>`;
         } else {
             // Norma
             let norm = 'Brak normy';
@@ -1229,38 +1256,6 @@ function updateYearlyControlsSummary() {
                 }
             });
             const normHtml = `<span class="summary-norm">${norm}</span>`;
-
-            // Lata / Dekady (kolorowanie pasujące do wykresu)
-            const showDecades = document.getElementById('show-decades')?.checked ?? false;
-            const selectedItems = [];
-            const checkboxes = document.querySelectorAll('#highlight-years-list input[type="checkbox"]:checked');
-            checkboxes.forEach(cb => {
-                const label = document.querySelector(`label[for="${cb.id}"]`)?.textContent;
-                if (label) selectedItems.push({ value: cb.value, text: label });
-            });
-
-            // Sortowanie malejąco
-            selectedItems.sort((a, b) => b.value.localeCompare(a.value, undefined, { numeric: true }));
-
-            let modeHtml = '';
-            if (showDecades) {
-                const decadeColors = {
-                    "2020s": '#dc2626', "2010s": '#ea580c', "2000s": '#d97706', "1990s": '#16a34a',
-                    "1980s": '#2563eb', "1970s": '#4f46e5', "1960s": '#9333ea', "1950s": '#db2777'
-                };
-                const coloredItems = selectedItems.map(item => {
-                    const color = decadeColors[item.value] || '#6b7280';
-                    return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
-                });
-                modeHtml = `Dekady: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
-            } else {
-                const yearColors = ['#dc2626', '#ea580c', '#d97706', '#16a34a', '#2563eb', '#4f46e5', '#9333ea', '#db2777'];
-                const coloredItems = selectedItems.map((item, idx) => {
-                    const color = yearColors[idx] || '#2563eb';
-                    return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 1px rgba(0,0,0,0.05);">${item.text}</span>`;
-                });
-                modeHtml = `Lata: ${coloredItems.length > 0 ? coloredItems.join(', ') : 'brak'}`;
-            }
 
             textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; <span class="summary-measure">${measure}</span> &nbsp; | &nbsp; ${normHtml} &nbsp; | &nbsp; <strong>${modeHtml}</strong>`;
         }
