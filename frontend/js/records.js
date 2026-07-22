@@ -357,21 +357,21 @@ const STREAK_CATEGORIES = [
     {
         id: 'tropical-nights',
         icon: '🌙',
-        title: 'Noce tropikalne pod rząd (T.Min >= 20°C)',
-        predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) >= 20
+        title: 'Noce półtropikalne pod rząd (T.Min > 18°C)',
+        predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) > 18
     },
     {
         id: 'strong-wind',
         icon: '💨',
-        title: 'Dni pod rząd z wiatrem > 10 m/s',
-        predicate: r => (r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) > 10) ||
-                     (r.wind_speed_max !== null && r.wind_speed_max !== undefined && Number(r.wind_speed_max) > 10)
+        title: 'Dni pod rząd z wiatrem > 8 m/s',
+        predicate: r => (r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) > 8) ||
+                     (r.wind_speed_max !== null && r.wind_speed_max !== undefined && Number(r.wind_speed_max) > 8)
     },
     {
         id: 'calm-wind',
         icon: '🍃',
-        title: 'Dni pod rząd z wiatrem < 2 m/s',
-        predicate: r => r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) < 2
+        title: 'Dni pod rząd z wiatrem < 3 m/s',
+        predicate: r => r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) < 3
     },
     {
         id: 'cloud-100',
