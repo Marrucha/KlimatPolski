@@ -6,7 +6,6 @@
     <title>Klimat Polski</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20260722-35">
     <link rel="stylesheet" href="css/style.css?v=20260722-20">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
     <div class="container">
@@ -21,89 +20,8 @@
                 <button class="tab-btn" data-tab="tab-records">Rekordy</button>
                 <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
                 <button class="tab-btn" data-tab="tab-monthly-chart">Wykresy miesięczne</button>
-                <button class="tab-btn" data-tab="tab-weather">Pogoda bieżąca</button>
                 <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
             </div>
-        </div>
-
-        <!-- TAB 1: Pogoda bieżąca (oryginalna) -->
-        <div id="tab-weather" class="tab-content">
-            <!-- Panel kontrolny -->
-            <section class="controls">
-                <div class="control-group">
-                    <label for="date-picker">Wybierz datę:</label>
-                    <input type="date" id="date-picker" />
-                </div>
-
-                <div class="control-group">
-                    <label for="location-select">Wybierz lokalizację:</label>
-                    <select id="location-select">
-                        <option value="">-- Załaduj dostępne lokalizacje --</option>
-                    </select>
-                </div>
-
-                <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
-            </section>
-
-            <!-- Mapa -->
-            <section class="map-section">
-                <h2>Mapa</h2>
-                <div id="map" class="map-container">
-                    <p class="placeholder">Mapa będzie wyświetlona tutaj (Leaflet)</p>
-                </div>
-            </section>
-
-            <!-- Wykresy i statystyki -->
-            <section class="stats-section">
-                <div class="stat-card">
-                    <h3>Temperatura</h3>
-                    <div id="temp-chart" class="chart-container"></div>
-                    <div class="stat-values">
-                        <div class="stat-item">
-                            <span class="label">Min:</span>
-                            <span id="temp-min" class="value">--</span>°C
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Max:</span>
-                            <span id="temp-max" class="value">--</span>°C
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Średnia:</span>
-                            <span id="temp-avg" class="value">--</span>°C
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h3>Opady</h3>
-                    <div id="precip-chart" class="chart-container"></div>
-                    <div class="stat-values">
-                        <div class="stat-item">
-                            <span class="label">Suma (24h):</span>
-                            <span id="precip-sum" class="value">--</span>mm
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <h3>Wiatr</h3>
-                    <div id="wind-chart" class="chart-container"></div>
-                    <div class="stat-values">
-                        <div class="stat-item">
-                            <span class="label">Prędkość (średnia):</span>
-                            <span id="wind-avg" class="value">--</span>m/s
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Maksimum:</span>
-                            <span id="wind-max" class="value">--</span>m/s
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Kierunek dominujący:</span>
-                            <span id="wind-dir" class="value">--</span>°
-                        </div>
-                    </div>
-                </div>
-            </section>
         </div>
         <!-- Wspólny panel sterowania dla profilu rocznego (widoczny tylko na zakładkach KPI i Wykres) -->
         <details class="yearly-controls-details" id="yearly-controls-container" open>
@@ -495,13 +413,11 @@
     </div>
 
     <!-- Skrypty -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260723-02"></script>
-    <script src="js/charts.js?v=20260723-02"></script>
-    <script src="js/map.js?v=20260723-02"></script>
-    <script src="js/main.js?v=20260723-02"></script>
-    <script src="js/records.js?v=20260723-02"></script>
-    <script src="js/monthly-chart.js?v=20260723-02"></script>
+    <script src="js/api.js?v=20260723-10"></script>
+    <script src="js/charts.js?v=20260723-10"></script>
+    <script src="js/main.js?v=20260723-10"></script>
+    <script src="js/records.js?v=20260723-10"></script>
+    <script src="js/monthly-chart.js?v=20260723-10"></script>
 </body>
 </html>

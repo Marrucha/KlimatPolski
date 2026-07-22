@@ -2,148 +2,6 @@
  * Główna logika aplikacji - obsługa UI i interakcji
  */
 
-let currentLocation = null;
-let currentData = null;
-
-// === INICJALIZACJA ===
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🌤️ Inicjalizacja aplikacji...');
-
-    // Ustaw dzisiaj jako domyślną datę
-    const today = new Date();
-    document.getElementById('date-picker').valueAsDate = today;
-
-    // Załaduj dostępne lokalizacje
-    await loadLocations();
-
-    // Obsługuj klik na przycisk
-    document.getElementById('load-data-btn').addEventListener('click', loadWeatherData);
-});
-
-/**
- * Załaduj listę dostępnych miast
- */
-async function loadLocations() {
-    try {
-        showLoading(true);
-
-        const cities = await getAvailableLocations();
-        const select = document.getElementById('location-select');
-
-        select.innerHTML = '<option value="">-- Wybierz lokalizację --</option>';
-
-        if (cities.length === 0) {
-            showError('Brak dostępnych lokalizacji. Upewnij się, że dane są w bazie Supabase.');
-            return;
-        }
-
-        cities.forEach(city => {
-            const option = document.createElement('option');
-            option.value = JSON.stringify({ city_id: city.id, name: city.name });
-            option.textContent = city.name;
-            select.appendChild(option);
-        });
-
-        console.log(`✓ Załadowano ${cities.length} miast`);
-    } catch (error) {
-        showError(`Błąd przy ładowaniu lokalizacji: ${error.message}`);
-    } finally {
-        showLoading(false);
-    }
-}
-
-/**
- * Załaduj dane pogodowe dla wybranego miasta
- */
-async function loadWeatherData() {
-    try {
-        const locationJson = document.getElementById('location-select').value;
-        const dateStr = document.getElementById('date-picker').value;
-
-        if (!locationJson) {
-            showError('Wybierz lokalizację');
-            return;
-        }
-        if (!dateStr) {
-            showError('Wybierz datę');
-            return;
-        }
-
-        showLoading(true);
-        showError('');
-
-        const location = JSON.parse(locationJson);
-        currentLocation = location;
-
-        const titleEl = document.getElementById('main-title');
-        if (titleEl) titleEl.textContent = `🌤️ Klimat - ${location.name}`;
-
-        const endDate = new Date(dateStr);
-        const startDate = new Date(endDate);
-        startDate.setDate(startDate.getDate() - 1);
-
-        const weatherRecords = await getWeatherData(
-            location.city_id,
-            formatDate(startDate),
-            formatDate(endDate)
-        );
-
-        const dailyStats = await getDailyStats(location.city_id, dateStr);
-
-        processAndDisplayData(weatherRecords, dailyStats, dateStr);
-
-        // Wyświetl mapę ze wszystkimi miastami
-        await displayMapWithCities(dateStr);
-
-        console.log(`✓ Załadowano ${weatherRecords.length} rekordów`);
-    } catch (error) {
-        showError(`Błąd przy ładowaniu danych: ${error.message}`);
-        console.error(error);
-    } finally {
-        showLoading(false);
-    }
-}
-
-/**
- * Przetwarza i wyświetla dane na stronie
- */
-function processAndDisplayData(records, dailyStats, dateStr) {
-    if (!records || records.length === 0) {
-        showError('Brak danych dla wybranej daty i lokalizacji');
-        return;
-    }
-
-    // Jeśli są statystyki dzienne, używaj ich; inaczej oblicz z rekordów surowych
-    if (dailyStats) {
-        displayStats(dailyStats);
-    } else {
-        const stats = calculateStatsFromRecords(records);
-        displayStats(stats);
-    }
-
-    // Rekordy godzinowe dla wybranego dnia (do rozwinięcia kafelków)
-    const dayRecords = records.filter(r => r.forecast_time && r.forecast_time.startsWith(dateStr));
-    const dayTemps = dayRecords.map(r => r.temperature_2m).filter(v => v !== null && v !== undefined);
-    const median = calculateMedian(dayTemps);
-    document.getElementById('temp-median').textContent = median !== null ? median.toFixed(1) : '--';
-    displayHourlyBreakdown(dayRecords);
-
-    // Wykresy
-    const temperatures = records.map(r => r.temperature_2m).filter(v => v !== null && v !== undefined);
-    const precipitations = records.map(r => r.precipitation_6h).filter(v => v !== null && v !== undefined);
-    const windSpeeds = records.map(r => r.wind_speed_10m).filter(v => v !== null && v !== undefined);
-    const windDirs = records.map(r => r.wind_direction_10m).filter(v => v !== null && v !== undefined);
-    const cloudCovers = records.map(r => r.cloud_cover_total).filter(v => v !== null && v !== undefined);
-
-    drawTemperatureChart('temp-chart', temperatures);
-    drawPrecipitationChart('precip-chart', precipitations);
-    drawWindChart('wind-chart', windSpeeds, windDirs);
-    const avgCloud = cloudCovers.length > 0 ? cloudCovers.reduce((a, b) => a + b) / cloudCovers.length : 0;
-    drawCloudChart('cloud-chart', avgCloud);
-
-    currentData = records;
-}
-
 /**
  * Oblicza medianę z tablicy liczb
  */
@@ -153,92 +11,6 @@ function calculateMedian(arr) {
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
-
-/**
- * Oblicza statystyki z rekordów surowych (gdy brak daily_stats)
- */
-function calculateStatsFromRecords(records) {
-    const temps = records.map(r => r.temperature_2m).filter(v => v !== null && v !== undefined);
-    const precipitations = records.map(r => r.precipitation_6h).filter(v => v !== null && v !== undefined);
-    const windSpeeds = records.map(r => r.wind_speed_10m).filter(v => v !== null && v !== undefined);
-    const windDirs = records.map(r => r.wind_direction_10m).filter(v => v !== null && v !== undefined);
-    const clouds = records.map(r => r.cloud_cover_total).filter(v => v !== null && v !== undefined);
-
-    return {
-        temp_min: temps.length > 0 ? Math.min(...temps) : null,
-        temp_max: temps.length > 0 ? Math.max(...temps) : null,
-        temp_avg: temps.length > 0 ? temps.reduce((a, b) => a + b) / temps.length : null,
-        temp_median: calculateMedian(temps),
-        precipitation_sum: precipitations.reduce((a, b) => a + b, 0),
-        wind_speed_avg: windSpeeds.length > 0 ? windSpeeds.reduce((a, b) => a + b) / windSpeeds.length : null,
-        wind_speed_max: windSpeeds.length > 0 ? Math.max(...windSpeeds) : null,
-        wind_direction_dominant: windDirs.length > 0 ? calculateMeanDirection(windDirs) : null,
-        cloud_cover_avg: clouds.length > 0 ? clouds.reduce((a, b) => a + b) / clouds.length : null,
-    };
-}
-
-/**
- * Oblicza średni kierunek wiatru (statystyka kierunkowa)
- */
-function calculateMeanDirection(directions) {
-    if (!directions.length) return 0;
-
-    const radians = directions.map(d => d * Math.PI / 180);
-    const sinSum = radians.reduce((sum, r) => sum + Math.sin(r), 0);
-    const cosSum = radians.reduce((sum, r) => sum + Math.cos(r), 0);
-
-    const meanRad = Math.atan2(sinSum, cosSum);
-    const meanDeg = meanRad * 180 / Math.PI;
-
-    return (meanDeg + 360) % 360;
-}
-
-/**
- * Wyświetla statystyki na stronie
- */
-function displayStats(stats) {
-    document.getElementById('temp-min').textContent = stats.temp_min ? stats.temp_min.toFixed(1) : '--';
-    document.getElementById('temp-max').textContent = stats.temp_max ? stats.temp_max.toFixed(1) : '--';
-    document.getElementById('temp-avg').textContent = stats.temp_avg ? stats.temp_avg.toFixed(1) : '--';
-
-    document.getElementById('precip-sum').textContent = stats.precipitation_sum ? stats.precipitation_sum.toFixed(1) : '--';
-
-    document.getElementById('wind-avg').textContent = stats.wind_speed_avg ? stats.wind_speed_avg.toFixed(1) : '--';
-    document.getElementById('wind-max').textContent = stats.wind_speed_max ? stats.wind_speed_max.toFixed(1) : '--';
-    document.getElementById('wind-dir').textContent = stats.wind_direction_dominant ? stats.wind_direction_dominant.toFixed(0) : '--';
-
-    document.getElementById('cloud-avg').textContent = stats.cloud_cover_avg ? stats.cloud_cover_avg.toFixed(0) : '--';
-}
-
-/**
- * Buduje rozwinięcie kafelków temperatury (średnia, mediana, max, min)
- * pokazujące wartość dla każdej dostępnej godziny raportu danego dnia
- * (do 8 punktów: 00, 03, 06, 09, 12, 15, 18, 21 UTC - w zależności od instancji fetch)
- */
-function displayHourlyBreakdown(dayRecords) {
-    const hourlyRows = [...dayRecords]
-        .filter(r => r.temperature_2m !== null && r.temperature_2m !== undefined)
-        .sort((a, b) => a.forecast_time.localeCompare(b.forecast_time))
-        .map(r => {
-            const hour = String(new Date(r.forecast_time).getHours()).padStart(2, '0') + ':00';
-            return `<div class="hourly-row"><span>${hour}</span><span>${r.temperature_2m.toFixed(1)}°C</span></div>`;
-        })
-        .join('');
-
-    const html = hourlyRows || '<div class="hourly-row"><span>Brak danych godzinowych</span></div>';
-
-    ['temp-avg', 'temp-median', 'temp-max', 'temp-min'].forEach(id => {
-        const detail = document.getElementById(`${id}-hourly`);
-        if (detail) detail.innerHTML = html;
-    });
-}
-
-// Rozwijanie/zwijanie kafelków temperatury po kliknięciu
-document.querySelectorAll('.weather-item.expandable').forEach(item => {
-    item.addEventListener('click', () => {
-        item.classList.toggle('expanded');
-    });
-});
 
 /**
  * Zwraca zakres dat (YYYY-MM-DD) dla danego roku i okresu KPI (rok/miesiąc/kwartał/półrocze)
@@ -560,46 +332,17 @@ async function initializeLocationSelects() {
 // === SYNCHRONIZACJA MIĘDZY ZAKŁADKAMI ===
 function syncLocationSelects(sourceSelect) {
     const locationValue = sourceSelect.value;
-    document.getElementById('location-select').value = locationValue;
-    document.getElementById('raw-location-select').value = locationValue;
-    document.getElementById('daily-location-select').value = locationValue;
-    document.getElementById('records-location-select').value = locationValue;
-    document.getElementById('monthly-location-select').value = locationValue;
-}
-
-function syncDateRange() {
-    const dateFrom = document.getElementById('raw-date-from').value;
-    if (dateFrom) {
-        const date = new Date(dateFrom);
-        const year = date.getFullYear();
-        const dateTo = `${year}-12-31`;
-        document.getElementById('raw-date-to').value = dateTo;
-    }
-}
-
-function syncYearFromMainDate() {
-    const mainDate = document.getElementById('date-picker').value;
-    if (mainDate) {
-        const date = new Date(mainDate);
-        const year = date.getFullYear();
-        const startOfYear = `${year}-01-01`;
-        const endOfYear = `${year}-12-31`;
-
-        document.getElementById('raw-date-from').value = startOfYear;
-        document.getElementById('raw-date-to').value = endOfYear;
-
-        document.getElementById('daily-month-picker').value = mainDate.substring(0, 7);
-    }
+    const ids = ['raw-location-select', 'daily-location-select', 'records-location-select', 'monthly-location-select'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = locationValue;
+    });
 }
 
 // Nasłuchiwanie zmian
-document.getElementById('location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
-document.getElementById('raw-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
-document.getElementById('daily-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
-document.getElementById('records-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
-document.getElementById('monthly-location-select')?.addEventListener('change', (e) => syncLocationSelects(e.target));
-document.getElementById('raw-date-from')?.addEventListener('change', syncDateRange);
-document.getElementById('date-picker')?.addEventListener('change', syncYearFromMainDate);
+['raw-location-select', 'daily-location-select', 'records-location-select', 'monthly-location-select'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', (e) => syncLocationSelects(e.target));
+});
 
 // === TAB 2: DANE SUROWE ===
 document.getElementById('load-raw-data-btn')?.addEventListener('click', loadRawData);
