@@ -230,6 +230,15 @@ function updateMonthlyDeltaControl() {
 
 function renderMonthlyAveragesChart(records, month, field) {
     const metric = MONTHLY_CHART_METRICS[field];
+    const isPrecip = field === 'precipitation_sum' || metric.label.toLowerCase().includes('opad') || metric.label === 'Opady';
+
+    const sectionHeading = document.querySelector('.monthly-chart-section h2');
+    if (sectionHeading) {
+        sectionHeading.textContent = isPrecip
+            ? 'Wieloletnie sumy opadów w miesiącu'
+            : 'Wieloletnie średnie dzienne w miesiącu';
+    }
+
     const mode = getMonthlyChartMode();
     const periods = getMonthlyChartPeriods(mode, getSelectedMonthlyDecades());
     const periodAverages = periods.map(period => ({
