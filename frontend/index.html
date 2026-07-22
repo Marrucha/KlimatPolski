@@ -18,6 +18,7 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="tab-daily-kpis">Wskaźniki KPI</button>
                 <button class="tab-btn" data-tab="tab-records">Rekordy</button>
+                <button class="tab-btn" data-tab="tab-streaks">Serie</button>
                 <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
                 <button class="tab-btn" data-tab="tab-monthly-chart">Wykresy miesięczne</button>
                 <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
@@ -289,72 +290,22 @@
             </section>
         </div>
 
-        <!-- TAB 3: Pogoda bieżąca -->
-        <div id="tab-weather" class="tab-content">
-            <!-- Panel kontrolny -->
-            <section class="controls">
-                <div class="control-group">
-                    <label for="date-picker">Wybierz datę:</label>
-                    <input type="date" id="date-picker" />
-                </div>
-
-                <div class="control-group">
-                    <label for="location-select">Wybierz lokalizację:</label>
-                    <select id="location-select">
-                        <option value="">-- Załaduj dostępne lokalizacje --</option>
-                    </select>
-                </div>
-
-                <button id="load-data-btn" class="btn-primary">Załaduj dane</button>
-            </section>
-
-            <!-- Mapa -->
-            <div class="stats-section">
-                <div class="map-container-wrapper">
-                    <div id="map" class="map-container"></div>
-                </div>
-
-                <!-- Dane klimatyczne / pogodowe -->
-                <div class="weather-info-card">
-                    <h2 id="location-title">Lokalizacja</h2>
-                    <p class="date-subtitle" id="selected-date-display">Wybierz datę i lokalizację...</p>
-                    
-                    <div class="weather-grid">
-                        <div class="weather-item expandable">
-                            <span class="label">Temperatura średnia <small>(kliknij, aby rozwinąć)</small></span>
-                            <span class="value" id="temp-avg">--</span>
-                            <div class="hourly-breakdown" id="temp-avg-hourly"></div>
-                        </div>
-                        <div class="weather-item expandable">
-                            <span class="label">Temperatura mediana <small>(kliknij, aby rozwinąć)</small></span>
-                            <span class="value" id="temp-median">--</span>
-                            <div class="hourly-breakdown" id="temp-median-hourly"></div>
-                        </div>
-                        <div class="weather-item expandable">
-                            <span class="label">Temperatura maksymalna <small>(kliknij, aby rozwinąć)</small></span>
-                            <span class="value text-danger" id="temp-max">--</span>
-                            <div class="hourly-breakdown" id="temp-max-hourly"></div>
-                        </div>
-                        <div class="weather-item expandable">
-                            <span class="label">Temperatura minimalna <small>(kliknij, aby rozwinąć)</small></span>
-                            <span class="value text-primary" id="temp-min">--</span>
-                            <div class="hourly-breakdown" id="temp-min-hourly"></div>
-                        </div>
-                        <div class="weather-item">
-                            <span class="label">Suma opadów</span>
-                            <span class="value" id="precipitation">--</span>
-                        </div>
-                        <div class="weather-item">
-                            <span class="label">Prędkość wiatru</span>
-                            <span class="value" id="wind-speed">--</span>
-                        </div>
-                        <div class="weather-item">
-                            <span class="label">Zachmurzenie średnie</span>
-                            <span class="value" id="cloud-cover">--</span>
-                        </div>
+        <!-- TAB 3: Serie -->
+        <div id="tab-streaks" class="tab-content">
+            <section class="data-table-section">
+                <div class="records-header-row">
+                    <h2>Najdłuższe serie pogodowe (dni pod rząd)</h2>
+                    <div class="control-group records-location-control">
+                        <label for="streaks-location-select">Lokalizacja</label>
+                        <select id="streaks-location-select">
+                            <option value="">-- Załaduj lokalizacje --</option>
+                        </select>
                     </div>
                 </div>
-            </div>
+
+                <div id="streaks-status" class="records-status">Wybierz lokalizację</div>
+                <div id="streaks-grid" class="records-grid"></div>
+            </section>
         </div>
 
         <!-- TAB 4: Dane surowe -->
@@ -414,10 +365,11 @@
 
     <!-- Skrypty -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260723-10"></script>
-    <script src="js/charts.js?v=20260723-10"></script>
-    <script src="js/main.js?v=20260723-10"></script>
-    <script src="js/records.js?v=20260723-10"></script>
-    <script src="js/monthly-chart.js?v=20260723-10"></script>
+    <script src="js/api.js?v=20260723-20"></script>
+    <script src="js/charts.js?v=20260723-20"></script>
+    <script src="js/main.js?v=20260723-20"></script>
+    <script src="js/records.js?v=20260723-20"></script>
+    <script src="js/monthly-chart.js?v=20260723-20"></script>
+    <script src="js/streaks.js?v=20260723-20"></script>
 </body>
 </html>

@@ -260,6 +260,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             loadRecordsTab();
         }
 
+        if (tabId === 'tab-streaks' && typeof loadStreaksTab === 'function') {
+            loadStreaksTab();
+        }
+
         if (tabId === 'tab-monthly-chart' && typeof loadMonthlyChartTab === 'function') {
             loadMonthlyChartTab();
         }
@@ -274,6 +278,7 @@ async function initializeLocationSelects() {
         document.getElementById('raw-location-select'),
         document.getElementById('daily-location-select'),
         document.getElementById('records-location-select'),
+        document.getElementById('streaks-location-select'),
         document.getElementById('monthly-location-select')
     ].forEach(select => {
         if (select) {
@@ -302,6 +307,8 @@ async function initializeLocationSelects() {
             dailySelect.value = opt.value;
             const recordsSelect = document.getElementById('records-location-select');
             if (recordsSelect) recordsSelect.value = opt.value;
+            const streaksSelect = document.getElementById('streaks-location-select');
+            if (streaksSelect) streaksSelect.value = opt.value;
             const monthlySelect = document.getElementById('monthly-location-select');
             if (monthlySelect) monthlySelect.value = opt.value;
 
@@ -332,7 +339,7 @@ async function initializeLocationSelects() {
 // === SYNCHRONIZACJA MIĘDZY ZAKŁADKAMI ===
 function syncLocationSelects(sourceSelect) {
     const locationValue = sourceSelect.value;
-    const ids = ['raw-location-select', 'daily-location-select', 'records-location-select', 'monthly-location-select'];
+    const ids = ['raw-location-select', 'daily-location-select', 'records-location-select', 'streaks-location-select', 'monthly-location-select'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = locationValue;
@@ -340,7 +347,7 @@ function syncLocationSelects(sourceSelect) {
 }
 
 // Nasłuchiwanie zmian
-['raw-location-select', 'daily-location-select', 'records-location-select', 'monthly-location-select'].forEach(id => {
+['raw-location-select', 'daily-location-select', 'records-location-select', 'streaks-location-select', 'monthly-location-select'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', (e) => syncLocationSelects(e.target));
 });
 
