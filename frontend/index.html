@@ -138,29 +138,15 @@
                         <label for="show-historical-bg">Pokaż lata w tle</label>
                     </div>
                     
-                    <div class="control-group flex-row">
-                        <input type="radio" name="climate-norm" id="show-norm-1991-2020" checked />
-                        <label for="show-norm-1991-2020">Norma 1991-2020</label>
-                    </div>
-
-                    <div class="control-group flex-row">
-                        <input type="radio" name="climate-norm" id="show-norm-1981-2010" />
-                        <label for="show-norm-1981-2010">Norma 1981-2010</label>
-                    </div>
-
-                    <div class="control-group flex-row">
-                        <input type="radio" name="climate-norm" id="show-norm-1980-2000" />
-                        <label for="show-norm-1980-2000">Norma 1980-2000</label>
-                    </div>
-
-                    <div class="control-group flex-row">
-                        <input type="radio" name="climate-norm" id="show-norm-1960-1990" />
-                        <label for="show-norm-1960-1990">Norma 1960-1990</label>
-                    </div>
-
-                    <div class="control-group flex-row">
-                        <input type="radio" name="climate-norm" id="show-norm-none" />
-                        <label for="show-norm-none">Brak normy</label>
+                    <div class="control-group">
+                        <label for="climate-norm-select">Norma klimatyczna:</label>
+                        <select id="climate-norm-select">
+                            <option value="1991-2020" selected>Norma 1991-2020</option>
+                            <option value="1981-2010">Norma 1981-2010</option>
+                            <option value="1980-2000">Norma 1980-2000</option>
+                            <option value="1960-1990">Norma 1960-1990</option>
+                            <option value="none">Brak normy</option>
+                        </select>
                     </div>
                 </div>
 
@@ -511,11 +497,11 @@
     <!-- Skrypty -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260722-50"></script>
-    <script src="js/charts.js?v=20260722-50"></script>
-    <script src="js/map.js?v=20260722-50"></script>
-    <script src="js/main.js?v=20260722-50"></script>
-    <script src="js/records.js?v=20260722-50"></script>
-    <script src="js/monthly-chart.js?v=20260722-50"></script>
+    <script src="js/api.js?v=20260723-01"></script>
+    <script src="js/charts.js?v=20260723-01"></script>
+    <script src="js/map.js?v=20260723-01"></script>
+    <script src="js/main.js?v=20260723-01"></script>
+    <script src="js/records.js?v=20260723-01"></script>
+    <script src="js/monthly-chart.js?v=20260723-01"></script>
 </body>
 </html>

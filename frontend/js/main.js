@@ -537,8 +537,15 @@ async function initializeLocationSelects() {
                 if (saved.measure) document.getElementById('daily-measure-select').value = saved.measure;
                 if (typeof saved.showHistoricalBg === 'boolean') document.getElementById('show-historical-bg').checked = saved.showHistoricalBg;
                 if (saved.norm) {
-                    const normEl = document.getElementById(saved.norm);
-                    if (normEl) normEl.checked = true;
+                    const normSelect = document.getElementById('climate-norm-select');
+                    if (normSelect) {
+                        if (saved.norm === 'show-norm-1991-2020') normSelect.value = '1991-2020';
+                        else if (saved.norm === 'show-norm-1981-2010') normSelect.value = '1981-2010';
+                        else if (saved.norm === 'show-norm-1980-2000') normSelect.value = '1980-2000';
+                        else if (saved.norm === 'show-norm-1960-1990') normSelect.value = '1960-1990';
+                        else if (saved.norm === 'show-norm-none') normSelect.value = 'none';
+                        else normSelect.value = saved.norm;
+                    }
                 }
                 if (typeof saved.onlyEvenYears === 'boolean') document.getElementById('only-even-years').checked = saved.onlyEvenYears;
                 if (typeof saved.showDecades === 'boolean') document.getElementById('show-decades').checked = saved.showDecades;
@@ -660,7 +667,6 @@ function loadYearlySettings() {
 }
 
 function saveYearlySettings() {
-    const checkedNorm = document.querySelector('input[name="climate-norm"]:checked');
     const listContainer = document.getElementById('highlight-years-list');
     const showDecades = document.getElementById('show-decades')?.checked ?? false;
 
@@ -668,7 +674,7 @@ function saveYearlySettings() {
         cityJson: document.getElementById('daily-location-select')?.value || null,
         measure: document.getElementById('daily-measure-select')?.value,
         showHistoricalBg: document.getElementById('show-historical-bg')?.checked,
-        norm: checkedNorm ? checkedNorm.id : null,
+        norm: document.getElementById('climate-norm-select')?.value,
         onlyEvenYears: document.getElementById('only-even-years')?.checked,
         showDecades,
         smoothing: document.getElementById('smoothing-select')?.value,
@@ -682,7 +688,7 @@ function saveYearlySettings() {
 document.getElementById('load-daily-stats-btn')?.addEventListener('click', loadDailyStatsProfile);
 
 // Reaguj na zmianę opcji
-['daily-measure-select', 'show-historical-bg', 'show-norm-1991-2020', 'show-norm-1981-2010', 'show-norm-1980-2000', 'show-norm-1960-1990', 'show-norm-none', 'show-decades', 'smoothing-select'].forEach(id => {
+['daily-measure-select', 'show-historical-bg', 'climate-norm-select', 'show-decades', 'smoothing-select'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', () => {
         if (id === 'show-decades') {
             handleDecadesToggle();
@@ -738,12 +744,13 @@ async function loadDailyStatsProfile() {
 
         // Wyciągamy lata najpierw
         const measure = document.getElementById('daily-measure-select')?.value || 'temp_avg';
+        const normValue = document.getElementById('climate-norm-select')?.value || '1991-2020';
         const config = {
             showHistoricalBg: document.getElementById('show-historical-bg')?.checked ?? true,
-            showNorm1991_2020: document.getElementById('show-norm-1991-2020')?.checked ?? true,
-            showNorm1981_2010: document.getElementById('show-norm-1981-2010')?.checked ?? false,
-            showNorm1980_2000: document.getElementById('show-norm-1980-2000')?.checked ?? false,
-            showNorm1960_1990: document.getElementById('show-norm-1960-1990')?.checked ?? false,
+            showNorm1991_2020: normValue === '1991-2020',
+            showNorm1981_2010: normValue === '1981-2010',
+            showNorm1980_2000: normValue === '1980-2000',
+            showNorm1960_1990: normValue === '1960-1990',
             onlyEvenYears: document.getElementById('only-even-years')?.checked ?? false,
             showDecades: document.getElementById('show-decades')?.checked ?? false,
             smoothing: document.getElementById('smoothing-select')?.value || 'none',
@@ -875,10 +882,11 @@ function updateYearlyChart() {
 
     const measure = document.getElementById('daily-measure-select')?.value || 'temp_avg';
     const showHistoricalBg = document.getElementById('show-historical-bg')?.checked ?? true;
-    const showNorm1991_2020 = document.getElementById('show-norm-1991-2020')?.checked ?? true;
-    const showNorm1981_2010 = document.getElementById('show-norm-1981-2010')?.checked ?? false;
-    const showNorm1980_2000 = document.getElementById('show-norm-1980-2000')?.checked ?? false;
-    const showNorm1960_1990 = document.getElementById('show-norm-1960-1990')?.checked ?? false;
+    const normValue = document.getElementById('climate-norm-select')?.value || '1991-2020';
+    const showNorm1991_2020 = normValue === '1991-2020';
+    const showNorm1981_2010 = normValue === '1981-2010';
+    const showNorm1980_2000 = normValue === '1980-2000';
+    const showNorm1960_1990 = normValue === '1960-1990';
     const onlyEvenYears = document.getElementById('only-even-years')?.checked ?? false;
     const showDecades = document.getElementById('show-decades')?.checked ?? false;
     const smoothing = document.getElementById('smoothing-select')?.value || 'none';
@@ -1248,13 +1256,11 @@ function updateYearlyControlsSummary() {
             textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; <strong>${modeHtml}</strong>`;
         } else {
             // Norma
+            const normSelect = document.getElementById('climate-norm-select');
             let norm = 'Brak normy';
-            ['show-norm-1991-2020', 'show-norm-1981-2010', 'show-norm-1980-2000', 'show-norm-1960-1990'].forEach(id => {
-                if (document.getElementById(id)?.checked) {
-                    const label = document.querySelector(`label[for="${id}"]`)?.textContent;
-                    if (label) norm = label;
-                }
-            });
+            if (normSelect && normSelect.value !== 'none') {
+                norm = normSelect.options[normSelect.selectedIndex]?.text || 'Norma ' + normSelect.value;
+            }
             const normHtml = `<span class="summary-norm">${norm}</span>`;
 
             textEl.innerHTML = ` &nbsp; ${cityHtml} &nbsp; | &nbsp; <span class="summary-measure">${measure}</span> &nbsp; | &nbsp; ${normHtml} &nbsp; | &nbsp; <strong>${modeHtml}</strong>`;
