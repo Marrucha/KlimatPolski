@@ -339,9 +339,30 @@ const STREAK_CATEGORIES = [
         predicate: r => r.temp_max !== null && r.temp_max !== undefined && Number(r.temp_max) >= 20
     },
     {
+        id: 'frosty-days',
+        title: '🧊 Dni mroźne pod rząd (T.Min < 0°C)',
+        predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) < 0
+    },
+    {
         id: 'very-cold-days',
-        title: '❄️ Dni pod rząd < -10°C (bardzo mroźne)',
+        title: '❄️ Dni bardzo mroźne pod rząd (T.Min < -10°C)',
         predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) < -10
+    },
+    {
+        id: 'tropical-nights',
+        title: '🌙 Noce tropikalne pod rząd (T.Min >= 20°C)',
+        predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) >= 20
+    },
+    {
+        id: 'strong-wind',
+        title: '💨 Dni pod rząd z wiatrem > 10 m/s',
+        predicate: r => (r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) > 10) ||
+                     (r.wind_speed_max !== null && r.wind_speed_max !== undefined && Number(r.wind_speed_max) > 10)
+    },
+    {
+        id: 'calm-wind',
+        title: '🍃 Dni pod rząd z wiatrem < 2 m/s',
+        predicate: r => r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) < 2
     },
     {
         id: 'cloud-100',
