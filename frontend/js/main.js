@@ -774,6 +774,15 @@ async function loadDailyStatsProfile() {
 }
 
 function handleDecadesToggle() {
+    const showDecades = document.getElementById('show-decades')?.checked ?? false;
+    const showHistoricalBgCb = document.getElementById('show-historical-bg');
+    if (showHistoricalBgCb) {
+        showHistoricalBgCb.disabled = showDecades;
+        const parentGroup = showHistoricalBgCb.closest('.control-group');
+        if (parentGroup) {
+            parentGroup.classList.toggle('disabled-option', showDecades);
+        }
+    }
     setupHighlightYearsList();
 }
 
