@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klimat Polski</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20260722-22">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20260722-25">
     <link rel="stylesheet" href="css/style.css?v=20260722-20">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
@@ -132,15 +132,10 @@
                     <button id="load-daily-stats-btn" class="btn-primary">Załaduj dane profilu</button>
                 </div>
 
-                <div class="control-row options-row">
+                <div class="control-row options-row chart-only-controls">
                     <div class="control-group flex-row">
                         <input type="checkbox" id="show-historical-bg" checked />
                         <label for="show-historical-bg">Pokaż lata w tle</label>
-                    </div>
-
-                    <div class="control-group flex-row">
-                        <input type="checkbox" id="only-even-years" />
-                        <label for="only-even-years">Tylko lata parzyste</label>
                     </div>
                     
                     <div class="control-group flex-row">
@@ -169,14 +164,14 @@
                     </div>
                 </div>
 
-                <div class="control-row options-row">
+                <div class="control-row options-row chart-only-controls">
                     <div class="control-group flex-row">
                         <input type="checkbox" id="show-decades" />
                         <label for="show-decades"><strong>Pokaż jako średnie dekadami</strong></label>
                     </div>
                 </div>
 
-                <details class="control-row years-row hidden" id="highlight-years-container" open>
+                <details class="control-row years-row hidden chart-only-controls" id="highlight-years-container" open>
                     <summary><strong id="highlight-years-label">Wyróżnione lata</strong>:<span id="highlight-years-summary-text"> (kliknij, aby zwinąć)</span></summary>
                     <div id="highlight-years-list" class="checkbox-list">
                         <!-- Dynamicznie generowane lata -->
