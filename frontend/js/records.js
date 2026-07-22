@@ -3,27 +3,27 @@
  */
 
 const RECORD_METRICS = [
-    { key: 'periodAverage', title: 'Najwyższa średnia okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
-    { key: 'periodAverage', title: 'Najniższa średnia okresu', direction: 'asc', unit: 'temperature', completedPeriodsOnly: true },
-    { key: 'periodMedian', title: 'Najwyższa mediana okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
-    { key: 'tempMax', title: 'Najwyższa temperatura', direction: 'desc', unit: 'temperature' },
-    { key: 'tempMin', title: 'Najniższa temperatura', direction: 'asc', unit: 'temperature' },
-    { key: 'tempMaxAvg', title: 'Najwyższa średnia dobowa', direction: 'desc', unit: 'temperature' },
-    { key: 'tempMinAvg', title: 'Najniższa średnia dobowa', direction: 'asc', unit: 'temperature' },
-    { key: 'precipitationTotal', title: 'Największe opady', direction: 'desc', unit: 'precipitation', completedPeriodsOnly: true },
-    { key: 'precipitationTotal', title: 'Najmniejsze opady', direction: 'asc', unit: 'precipitation', completedPeriodsOnly: true },
-    { key: 'windAverage', title: 'Najsilniejszy wiatr', direction: 'desc', unit: 'wind', completedPeriodsOnly: true },
-    { key: 'windAverage', title: 'Najsłabszy wiatr', direction: 'asc', unit: 'wind', completedPeriodsOnly: true },
-    { key: 'cloudAverage', title: 'Największe zachmurzenie', direction: 'desc', unit: 'cloud', completedPeriodsOnly: true },
-    { key: 'cloudAverage', title: 'Najmniejsze zachmurzenie', direction: 'asc', unit: 'cloud', completedPeriodsOnly: true },
-    { key: 'rainyDays', title: 'Najwięcej dni deszczowych (opad > 0 mm)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'rainyDays', title: 'Najmniej dni deszczowych (opad > 0 mm)', direction: 'asc', unit: 'days', completedPeriodsOnly: true },
-    { key: 'daysHot', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'daysWarm', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'daysFrosty', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'daysGlacial', title: 'Najwięcej dni bardzo mroźnych (T.Min < -10°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'tropicalNights', title: 'Najwięcej nocy tropikalnych (T.Min >= 20°C)', direction: 'desc', unit: 'nights', positiveOnly: true, completedPeriodsOnly: true },
-    { key: 'maxDiurnalRange', title: 'Największa dobowa amplituda', direction: 'desc', unit: 'temperature' }
+    { key: 'periodAverage', icon: '☀️', title: 'Najwyższa średnia okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
+    { key: 'periodAverage', icon: '🥶', title: 'Najniższa średnia okresu', direction: 'asc', unit: 'temperature', completedPeriodsOnly: true },
+    { key: 'periodMedian', icon: '📊', title: 'Najwyższa mediana okresu', direction: 'desc', unit: 'temperature', completedPeriodsOnly: true },
+    { key: 'tempMax', icon: '🔥', title: 'Najwyższa temperatura', direction: 'desc', unit: 'temperature' },
+    { key: 'tempMin', icon: '❄️', title: 'Najniższa temperatura', direction: 'asc', unit: 'temperature' },
+    { key: 'tempMaxAvg', icon: '🌡️', title: 'Najwyższa średnia dobowa', direction: 'desc', unit: 'temperature' },
+    { key: 'tempMinAvg', icon: '🧊', title: 'Najniższa średnia dobowa', direction: 'asc', unit: 'temperature' },
+    { key: 'precipitationTotal', icon: '🌧️', title: 'Największe opady', direction: 'desc', unit: 'precipitation', completedPeriodsOnly: true },
+    { key: 'precipitationTotal', icon: '🌵', title: 'Najmniejsze opady', direction: 'asc', unit: 'precipitation', completedPeriodsOnly: true },
+    { key: 'windAverage', icon: '💨', title: 'Najsilniejszy wiatr', direction: 'desc', unit: 'wind', completedPeriodsOnly: true },
+    { key: 'windAverage', icon: '🍃', title: 'Najsłabszy wiatr', direction: 'asc', unit: 'wind', completedPeriodsOnly: true },
+    { key: 'cloudAverage', icon: '☁️', title: 'Największe zachmurzenie', direction: 'desc', unit: 'cloud', completedPeriodsOnly: true },
+    { key: 'cloudAverage', icon: '☀️', title: 'Najmniejsze zachmurzenie', direction: 'asc', unit: 'cloud', completedPeriodsOnly: true },
+    { key: 'rainyDays', icon: '🌧️', title: 'Najwięcej dni deszczowych (opad > 0 mm)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'rainyDays', icon: '☀️', title: 'Najmniej dni deszczowych (opad > 0 mm)', direction: 'asc', unit: 'days', completedPeriodsOnly: true },
+    { key: 'daysHot', icon: '🔥', title: 'Najwięcej dni upalnych (T.Max > 30°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysWarm', icon: '🌤️', title: 'Najwięcej dni ciepłych (T.Max >= 20°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysFrosty', icon: '🧊', title: 'Najwięcej dni mroźnych (T.Min < 0°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'daysGlacial', icon: '❄️', title: 'Najwięcej dni bardzo mroźnych (T.Min < -10°C)', direction: 'desc', unit: 'days', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'tropicalNights', icon: '🌙', title: 'Najwięcej nocy tropikalnych (T.Min >= 20°C)', direction: 'desc', unit: 'nights', positiveOnly: true, completedPeriodsOnly: true },
+    { key: 'maxDiurnalRange', icon: '📈', title: 'Największa dobowa amplituda', direction: 'desc', unit: 'temperature' }
 ];
 
 const RECORD_MONTH_NAMES = [
@@ -261,7 +261,7 @@ function renderDailyRecordCards(records, granularity) {
     grid.innerHTML = RECORD_METRICS.map(metric => {
         const topRecords = getTopRecordPeriods(summaries, metric);
         return `<article class="records-card">
-            <h3>${metric.title}</h3>
+            <h3><span class="record-card-icon">${metric.icon || ''}</span><span>${metric.title}</span></h3>
             ${renderRecordRows(topRecords, record => formatRecordValue(record[metric.key], metric.unit))}
         </article>`;
     }).join('');
@@ -295,14 +295,14 @@ function formatHourlyRecord(record, field) {
 
 function renderHourlyRecordCards(results) {
     const definitions = [
-        { title: 'Najwyższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
-        { title: 'Najniższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
-        { title: 'Największe opady', field: 'precipitation_6h', unit: 'precipitation' },
-        { title: 'Najmniejsze opady', field: 'precipitation_6h', unit: 'precipitation' },
-        { title: 'Najsilniejszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
-        { title: 'Najsłabszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
-        { title: 'Największe zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' },
-        { title: 'Najmniejsze zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' }
+        { icon: '🔥', title: 'Najwyższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
+        { icon: '❄️', title: 'Najniższe pomiary temperatury', field: 'temperature_2m', unit: 'temperature' },
+        { icon: '🌧️', title: 'Największe opady', field: 'precipitation_6h', unit: 'precipitation' },
+        { icon: '🌵', title: 'Najmniejsze opady', field: 'precipitation_6h', unit: 'precipitation' },
+        { icon: '💨', title: 'Najsilniejszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
+        { icon: '🍃', title: 'Najsłabszy wiatr', field: 'wind_speed_10m', unit: 'wind' },
+        { icon: '☁️', title: 'Największe zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' },
+        { icon: '☀️', title: 'Najmniejsze zachmurzenie', field: 'cloud_cover_total', unit: 'cloud' }
     ];
     const cards = definitions.map((definition, index) => ({
         ...definition,
@@ -311,7 +311,7 @@ function renderHourlyRecordCards(results) {
     document.getElementById('records-grid').innerHTML = cards.map(card => {
         const records = card.records.map(record => formatHourlyRecord(record, card.field));
         return `<article class="records-card">
-            <h3>${card.title}</h3>
+            <h3><span class="record-card-icon">${card.icon}</span><span>${card.title}</span></h3>
             ${renderRecordRows(records, record => formatRecordValue(record.value, card.unit))}
         </article>`;
     }).join('');
@@ -320,58 +320,69 @@ function renderHourlyRecordCards(results) {
 const STREAK_CATEGORIES = [
     {
         id: 'no-precip',
-        title: '☀️ Najdłuższe serie bez opadów',
+        icon: '☀️',
+        title: 'Najdłuższe serie bez opadów',
         predicate: r => r.precipitation_sum !== null && r.precipitation_sum !== undefined && Number(r.precipitation_sum) === 0
     },
     {
         id: 'precip',
-        title: '🌧️ Najdłuższe serie z opadami',
+        icon: '🌧️',
+        title: 'Najdłuższe serie z opadami',
         predicate: r => r.precipitation_sum !== null && r.precipitation_sum !== undefined && Number(r.precipitation_sum) > 0
     },
     {
         id: 'hot-days',
-        title: '🔥 Dni pod rząd > 30°C (upalne)',
+        icon: '🔥',
+        title: 'Dni pod rząd > 30°C (upalne)',
         predicate: r => r.temp_max !== null && r.temp_max !== undefined && Number(r.temp_max) > 30
     },
     {
         id: 'warm-days',
-        title: '🌡️ Dni pod rząd >= 20°C (ciepłe)',
+        icon: '🌡️',
+        title: 'Dni pod rząd >= 20°C (ciepłe)',
         predicate: r => r.temp_max !== null && r.temp_max !== undefined && Number(r.temp_max) >= 20
     },
     {
         id: 'frosty-days',
-        title: '🧊 Dni mroźne pod rząd (T.Min < 0°C)',
+        icon: '🧊',
+        title: 'Dni mroźne pod rząd (T.Min < 0°C)',
         predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) < 0
     },
     {
         id: 'very-cold-days',
-        title: '❄️ Dni bardzo mroźne pod rząd (T.Min < -10°C)',
+        icon: '❄️',
+        title: 'Dni bardzo mroźne pod rząd (T.Min < -10°C)',
         predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) < -10
     },
     {
         id: 'tropical-nights',
-        title: '🌙 Noce tropikalne pod rząd (T.Min >= 20°C)',
+        icon: '🌙',
+        title: 'Noce tropikalne pod rząd (T.Min >= 20°C)',
         predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) >= 20
     },
     {
         id: 'strong-wind',
-        title: '💨 Dni pod rząd z wiatrem > 10 m/s',
+        icon: '💨',
+        title: 'Dni pod rząd z wiatrem > 10 m/s',
         predicate: r => (r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) > 10) ||
                      (r.wind_speed_max !== null && r.wind_speed_max !== undefined && Number(r.wind_speed_max) > 10)
     },
     {
         id: 'calm-wind',
-        title: '🍃 Dni pod rząd z wiatrem < 2 m/s',
+        icon: '🍃',
+        title: 'Dni pod rząd z wiatrem < 2 m/s',
         predicate: r => r.wind_speed_avg !== null && r.wind_speed_avg !== undefined && Number(r.wind_speed_avg) < 2
     },
     {
         id: 'cloud-100',
-        title: '☁️ Dni pod rząd z zachmurzeniem 100%',
+        icon: '☁️',
+        title: 'Dni pod rząd z zachmurzeniem 100%',
         predicate: r => r.cloud_cover_avg !== null && r.cloud_cover_avg !== undefined && Number(r.cloud_cover_avg) >= 95
     },
     {
         id: 'cloud-0',
-        title: '☀️ Dni pod rząd bez zachmurzenia',
+        icon: '☀️',
+        title: 'Dni pod rząd bez zachmurzenia',
         predicate: r => r.cloud_cover_avg !== null && r.cloud_cover_avg !== undefined && Number(r.cloud_cover_avg) <= 5
     }
 ];
@@ -444,7 +455,7 @@ function renderStreakCards(records) {
 
         return `
             <article class="records-card">
-                <h3>${category.title}</h3>
+                <h3><span class="record-card-icon">${category.icon}</span><span>${category.title}</span></h3>
                 ${rowsHtml}
             </article>
         `;

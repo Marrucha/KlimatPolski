@@ -871,14 +871,21 @@ details.yearly-controls-details[open] summary {
 }
 
 .records-card h3 {
-    min-height: 58px;
+    min-height: 64px;
     display: flex;
     align-items: center;
+    gap: 0.65rem;
     padding: 0.85rem 1rem;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.85rem;
     color: var(--text-secondary);
     text-transform: uppercase;
+}
+
+.record-card-icon {
+    font-size: 1.65rem;
+    flex-shrink: 0;
+    line-height: 1;
 }
 
 .records-list {
