@@ -317,6 +317,119 @@ function renderHourlyRecordCards(results) {
     }).join('');
 }
 
+const STREAK_CATEGORIES = [
+    {
+        id: 'no-precip',
+        title: '☀️ Najdłuższe serie bez opadów',
+        predicate: r => r.precipitation_sum !== null && r.precipitation_sum !== undefined && Number(r.precipitation_sum) === 0
+    },
+    {
+        id: 'precip',
+        title: '🌧️ Najdłuższe serie z opadami',
+        predicate: r => r.precipitation_sum !== null && r.precipitation_sum !== undefined && Number(r.precipitation_sum) > 0
+    },
+    {
+        id: 'hot-days',
+        title: '🔥 Dni pod rząd > 30°C (upalne)',
+        predicate: r => r.temp_max !== null && r.temp_max !== undefined && Number(r.temp_max) > 30
+    },
+    {
+        id: 'warm-days',
+        title: '🌡️ Dni pod rząd >= 20°C (ciepłe)',
+        predicate: r => r.temp_max !== null && r.temp_max !== undefined && Number(r.temp_max) >= 20
+    },
+    {
+        id: 'very-cold-days',
+        title: '❄️ Dni pod rząd < -10°C (bardzo mroźne)',
+        predicate: r => r.temp_min !== null && r.temp_min !== undefined && Number(r.temp_min) < -10
+    },
+    {
+        id: 'cloud-100',
+        title: '☁️ Dni pod rząd z zachmurzeniem 100%',
+        predicate: r => r.cloud_cover_avg !== null && r.cloud_cover_avg !== undefined && Number(r.cloud_cover_avg) >= 95
+    },
+    {
+        id: 'cloud-0',
+        title: '☀️ Dni pod rząd bez zachmurzenia',
+        predicate: r => r.cloud_cover_avg !== null && r.cloud_cover_avg !== undefined && Number(r.cloud_cover_avg) <= 5
+    }
+];
+
+function formatStreakDate(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+function calculateStreaksForCategory(records, predicate, limit = 5) {
+    const streaks = [];
+    let count = 0;
+    let startDate = null;
+    let endDate = null;
+
+    for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        if (predicate(record)) {
+            if (count === 0) {
+                startDate = record.date;
+            }
+            count++;
+            endDate = record.date;
+        } else {
+            if (count > 0) {
+                streaks.push({ count, startDate, endDate });
+                count = 0;
+                startDate = null;
+                endDate = null;
+            }
+        }
+    }
+
+    if (count > 0) {
+        streaks.push({ count, startDate, endDate });
+    }
+
+    streaks.sort((a, b) => b.count - a.count || b.endDate.localeCompare(a.endDate));
+    return streaks.slice(0, limit);
+}
+
+function renderStreakCards(records) {
+    const grid = document.getElementById('records-grid');
+    if (!grid) return;
+
+    grid.innerHTML = STREAK_CATEGORIES.map(category => {
+        const topStreaks = calculateStreaksForCategory(records, category.predicate, 5);
+
+        let rowsHtml = '';
+        if (topStreaks.length === 0) {
+            rowsHtml = '<div class="records-empty">Brak takich serii w historii pomiarów</div>';
+        } else {
+            rowsHtml = `<ol class="records-list">${topStreaks.map((streak, index) => {
+                const daysLabel = streak.count === 1 ? '1 dzień' : `${streak.count} dni`;
+                const dateRange = streak.startDate === streak.endDate
+                    ? formatStreakDate(streak.startDate)
+                    : `${formatStreakDate(streak.startDate)} – ${formatStreakDate(streak.endDate)}`;
+
+                return `
+                    <li class="records-row">
+                        <span class="records-rank">${index + 1}.</span>
+                        <span class="records-period-label">${dateRange}</span>
+                        <strong class="records-value">${daysLabel}</strong>
+                    </li>
+                `;
+            }).join('')}</ol>`;
+        }
+
+        return `
+            <article class="records-card">
+                <h3>${category.title}</h3>
+                ${rowsHtml}
+            </article>
+        `;
+    }).join('');
+}
+
 function setRecordsStatus(message) {
     const status = document.getElementById('records-status');
     status.textContent = message;
@@ -337,7 +450,21 @@ async function loadRecordsTab(force = false) {
     document.getElementById('records-grid').innerHTML = '';
 
     try {
-        if (recordsState.granularity === 'hour') {
+        if (recordsState.granularity === 'streaks') {
+            const canReuseProfileData = typeof currentDailyCityId !== 'undefined'
+                && currentDailyCityId === location.city_id
+                && typeof loadedDailyStatsData !== 'undefined'
+                && Array.isArray(loadedDailyStatsData);
+
+            if (force || recordsState.cityId !== location.city_id || !recordsState.dailyStats) {
+                recordsState.dailyStats = canReuseProfileData
+                    ? loadedDailyStatsData
+                    : await getAllDailyStats(location.city_id);
+                recordsState.cityId = location.city_id;
+            }
+            if (requestId !== recordsState.requestId) return;
+            renderStreakCards(recordsState.dailyStats);
+        } else if (recordsState.granularity === 'hour') {
             const hourlyMetrics = [
                 ['temperature_2m', 'desc'],
                 ['temperature_2m', 'asc'],

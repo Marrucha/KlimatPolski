@@ -18,7 +18,6 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="tab-daily-kpis">Wskaźniki KPI</button>
                 <button class="tab-btn" data-tab="tab-records">Rekordy</button>
-                <button class="tab-btn" data-tab="tab-streaks">Serie</button>
                 <button class="tab-btn" data-tab="tab-daily-chart">Wykres porównawczy</button>
                 <button class="tab-btn" data-tab="tab-monthly-chart">Wykresy miesięczne</button>
                 <button class="tab-btn" data-tab="tab-raw-data">Dane surowe</button>
@@ -283,28 +282,11 @@
                     <button type="button" class="records-period-btn" data-period="week" aria-pressed="false">Tygodniowe</button>
                     <button type="button" class="records-period-btn" data-period="day" aria-pressed="false">Dzienne</button>
                     <button type="button" class="records-period-btn" data-period="hour" aria-pressed="false">Godzinowe</button>
+                    <button type="button" class="records-period-btn" data-period="streaks" aria-pressed="false">Serie</button>
                 </div>
 
                 <div id="records-status" class="records-status">Wybierz lokalizację</div>
                 <div id="records-grid" class="records-grid"></div>
-            </section>
-        </div>
-
-        <!-- TAB 3: Serie -->
-        <div id="tab-streaks" class="tab-content">
-            <section class="data-table-section">
-                <div class="records-header-row">
-                    <h2>Najdłuższe serie pogodowe (dni pod rząd)</h2>
-                    <div class="control-group records-location-control">
-                        <label for="streaks-location-select">Lokalizacja</label>
-                        <select id="streaks-location-select">
-                            <option value="">-- Załaduj lokalizacje --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="streaks-status" class="records-status">Wybierz lokalizację</div>
-                <div id="streaks-grid" class="records-grid"></div>
             </section>
         </div>
 
@@ -365,11 +347,10 @@
 
     <!-- Skrypty -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/api.js?v=20260723-20"></script>
-    <script src="js/charts.js?v=20260723-20"></script>
-    <script src="js/main.js?v=20260723-20"></script>
-    <script src="js/records.js?v=20260723-20"></script>
-    <script src="js/monthly-chart.js?v=20260723-20"></script>
-    <script src="js/streaks.js?v=20260723-20"></script>
+    <script src="js/api.js?v=20260723-30"></script>
+    <script src="js/charts.js?v=20260723-30"></script>
+    <script src="js/main.js?v=20260723-30"></script>
+    <script src="js/records.js?v=20260723-30"></script>
+    <script src="js/monthly-chart.js?v=20260723-30"></script>
 </body>
 </html>
