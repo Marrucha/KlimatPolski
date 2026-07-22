@@ -107,16 +107,29 @@ function renderMonthlyPeriodAverageCards(periodAverages, metric, deltaValues = n
     const container = document.getElementById('monthly-period-averages');
     if (!container) return;
 
-    const cards = periodAverages.map(period => ({
-        label: `Średnia ${period.label}`,
-        color: period.color || metric.color,
-        value: getMonthlyValuesAverage(period.dailyAverages.map(item => item.value))
-    }));
+    const isPrecip = metric.label.toLowerCase().includes('opad') || metric.label === 'Opady';
+
+    const cards = periodAverages.map(period => {
+        const values = period.dailyAverages.map(item => item.value).filter(v => Number.isFinite(v));
+        const val = isPrecip 
+            ? (values.length > 0 ? values.reduce((sum, value) => sum + value, 0) : null)
+            : getMonthlyValuesAverage(values);
+        return {
+            label: `${isPrecip ? 'Suma' : 'Średnia'} ${period.label}`,
+            color: period.color || metric.color,
+            value: val
+        };
+    });
+
     if (deltaValues) {
+        const validDeltas = deltaValues.filter(v => Number.isFinite(v));
+        const deltaVal = isPrecip
+            ? (validDeltas.length > 0 ? validDeltas.reduce((sum, value) => sum + value, 0) : null)
+            : getMonthlyValuesAverage(deltaValues);
         cards.push({
-            label: `Delta średnich (${periodAverages[1].label} - ${periodAverages[0].label})`,
+            label: `Delta ${isPrecip ? 'sum' : 'średnich'} (${periodAverages[1].label} - ${periodAverages[0].label})`,
             color: '#111827',
-            value: getMonthlyValuesAverage(deltaValues)
+            value: deltaVal
         });
     }
 
@@ -344,7 +357,7 @@ function renderMonthlyAveragesChart(records, month, field) {
     status.textContent = periodYearCounts.every(count => count === 0)
         ? 'Brak danych dla wybranego miesiąca'
         : periodAverages.length === 1
-            ? `Średnia z ${formatMonthlyYearsCount(periodYearCounts[0])} (${periods[0].label})`
+            ? `${isPrecip ? 'Suma' : 'Średnia'} z ${formatMonthlyYearsCount(periodYearCounts[0])} (${periods[0].label})`
             : `Porównanie: ${periods.map((period, index) => `${period.label} (${formatMonthlyYearsCount(periodYearCounts[index])})`).join(', ')}`;
 }
 
